@@ -1,0 +1,410 @@
+<html>
+  <head>
+    <link rel="icon" type="image/png" href="/water-glas.png">
+    <link rel="manifest" href="manifest.json">
+    <style>
+      html * {
+	font-family:Arial;
+	font-size: 24;
+      }
+      h1 {
+        text-align: center;
+      }
+      form {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 80%;
+        margin: 0 auto;
+        justify-content: space-between;
+      }
+      input[type="date"] {
+        width: 50%;
+        font-size: 1.2em;
+        border: solid;
+        border-radius: 15px;
+      }
+      input[type="time"] {
+        width: 50%;
+        font-size: 1.2em;
+        border: solid;
+        border-radius: 15px;
+      }
+      input[type="number"] {
+        width: 50%;
+        font-size: 1.2em;
+        border: solid;
+        border-radius: 15px;
+      }
+      input[type="submit"] {
+        width: 75%;
+        font-size: 1.2em;
+        background-color: lightblue;
+		color: black;
+        border: solid black;
+        border-radius: 0.5em;
+        padding: 1em;
+        margin-top: 0.5em;
+      }
+      #reset {
+		background-color: tomato;
+      }
+      #total {
+        font-size: 2em;
+        font-weight: bold;
+        color: green;
+      }
+      .water-glas {
+        height: 8em;
+        position: absolute;
+        top: 58em;
+        display: flex;
+        align-items: center;
+        z-index: 2;
+      }
+      .water-glas img {
+        height: 100%;
+        object-fit: cover;
+      }
+      #waterLevel {
+        position: absolute;
+        background-color: transparent;
+        bottom: 10px;
+        width:54%;
+        z-index: -1;
+      }
+      #water-glass-desc {
+		position: absolute;
+		top: 53em;
+      }
+      #canvas {
+		position: absolute;
+		top: 1em;
+		width: 25%;
+      }
+      #chart {
+		margin: 1em 0 0 -20%;
+      }
+      #chart_desc_date {
+		position: absolute;
+		text-align: center;
+		width: 124%;
+		margin: -85% 0%;
+      }
+      #chart_desc_val {
+        position: absolute;
+        text-align: center;
+        width: 120%;
+        margin: -48% 0%;
+      }
+    
+    </style>
+  </head>
+<body>
+
+<h1>Mein Tages-Wasserlogbuch</h1>
+
+<form>
+  Datum: <input type="date" id="datum" value=""><br>
+  Uhrzeit: <input type="time" id="uhrzeit" value=""><br>
+  Tagesbedarf [ml]: <input type="number" id="DailyGoal"> 
+  <input type="submit" id="goal" value=change onclick="changeGoal()"><br><br>
+  <input type="submit" id="200" value=200 onclick="addWasser(200)">
+  <input type="submit" id="300" value=300 onclick="addWasser(300)">
+  <input type="submit" id="400" value=400 onclick="addWasser(400)">
+  <input type="submit" id="500" value=500 onclick="addWasser(500)"><br><br>
+  <input type="submit" id="reset" value="Reset" onclick="clearStorage()"><br><br>
+<!--  <button class="js-push-btn" type="button" id="push">Request Permission</button>
+    <section class="subscription-details js-subscription-details is-invisible">
+      <p>Once you've subscribed your user, you'd send their subscription to your
+      server to store in a database so that when you want to send a message
+      you can lookup the subscription and send a message to it.</p>
+      <p>To simplify things for this code lab copy the following details
+      into the <a href="https://web-push-codelab.glitch.me/">Push Companion
+      Site</a> and it'll send a push message for you, using the application
+      server keys on the site - so make sure they match.</p>
+      <pre><code class="js-subscription-json"></code></pre>
+    </section> -->
+  <div class="water-glas">
+    <img src="water-glas.png" alt="Wasserglas">
+    <div id="waterLevel"></div>
+  </div>
+  <div id="water-glass-desc">
+    <p>Insgesamt heute: <span id="total">0</span> ml</p>
+  </div>
+</form> 
+<div id="canvas">
+  <div id="chart">
+    <canvas id="myChart0"></canvas><br>
+    <p id="chart_desc_date"><span id="desc0"></span></p>
+    <p id="chart_desc_val"><span id="val0"></span></p>
+  </div>
+  <div id="chart">
+    <canvas id="myChart1"></canvas><br>
+    <p id="chart_desc_date"><span id="desc1"></span></p>
+    <p id="chart_desc_val"><span id="val1"></span></p>
+  </div>
+  <div id="chart">
+    <canvas id="myChart2"></canvas><br>
+    <p id="chart_desc_date"><span id="desc2"></span></p>
+    <p id="chart_desc_val"><span id="val2"></span></p>
+  </div>
+  <div id="chart">
+    <canvas id="myChart3"></canvas><br>
+    <p id="chart_desc_date"><span id="desc3"></span></p>
+    <p id="chart_desc_val"><span id="val3"></span></p>
+  </div>
+  <div id="chart">
+    <canvas id="myChart4"></canvas><br>
+    <p id="chart_desc_date"><span id="desc4"></span></p>
+    <p id="chart_desc_val"><span id="val4"></span></p>
+  </div>
+  <div id="chart">
+    <canvas id="myChart5"></canvas><br>
+    <p id="chart_desc_date"><span id="desc5"></span></p>
+    <p id="chart_desc_val"><span id="val5"></span></p>
+  </div>
+  <div id="chart">
+    <canvas id="myChart6"></canvas><br>
+    <p id="chart_desc_date"><span id="desc6"></span></p>
+    <p id="chart_desc_val"><span id="val6"></span></p>
+  </div>
+</div>
+
+<script src="./Chart.js"></script>
+<!-- <script src="scripts/main.js"></script> -->
+
+
+<script type = "text/javascript">
+	let websiteUrl = https://example.org
+
+//  let btn = document.getElementById('push');
+//  btn.addEventListener("click", () => {
+//    let promise = Notification.requestPermission();
+//    // wait for permission
+//  });
+
+  //Setup localStorage Array
+  let items = JSON.parse(localStorage.getItem('history'));
+
+  function custom_sort(a,b) {
+    let [day1, month1, year1] = a.datum.split('.');
+    a = new Date(year1, month1 -1 , day1);
+    let [day2, month2, year2] = b.datum.split('.');
+    b = new Date(year2, month2 -1 , day2);
+    return b - a;
+  }
+  
+  if(items != null) {
+    items.sort(custom_sort);
+  }
+
+  //Datum erstellen
+  const today = new Date();
+  const day = String(today.getDate()).padStart(2, '0');
+  const month = String(today.getMonth() + 1).padStart(2, '0'); // January is month 0!
+  const year = today.getFullYear();
+  const dateString = year + '-' + month + '-' + day;
+  let hour = String(today.getHours());
+  let minute = String(today.getMinutes());
+  if (minute < 10) {
+    minute = "0" + minute;
+  };
+  if (hour < 10) {
+    hour = "0" + hour;
+  };
+  const timeString = hour + ':' + minute;
+
+  //Datum & Uhrzeit mit aktuellen Daten vorbelegen
+  document.getElementById('datum').value = dateString;
+  document.getElementById('uhrzeit').value = timeString;
+
+  //werte die History aus
+  let tempMenge = 0;
+  let tempArray = [];
+  let tempDate = "";
+  let counter = 0;
+  let total = 0;
+  let graphicTotal = 0;
+  let goal = 0;
+  let written = false;
+  if (items != null) {
+     tempDate = items[0].datum;
+     for (let i = 0;i < items.length && i < 7;i++) {
+	if (tempDate == items[i].datum) {
+           tempMenge = tempMenge + items[i].menge;
+           tempDate = items[i].datum;
+           if (counter == 0) {
+                tempArray[counter] = "[" + JSON.stringify({datum: tempDate,menge: tempMenge});
+           } else {
+                tempArray[counter] = JSON.stringify({datum: tempDate,menge: tempMenge});
+           }
+           if (tempDate == today.toLocaleDateString("de-DE")) {
+             total = tempMenge;
+           }
+	} else {
+           tempMenge = items[i].menge;
+           tempDate = items[i].datum;
+           counter++;
+           if (tempDate == today.toLocaleDateString("de-DE")) {
+             total = tempMenge;
+           }
+           tempArray[counter] = JSON.stringify({datum: tempDate,menge: tempMenge});
+	}
+     }
+     if (counter == 0) {
+       tempArray[counter] = "[" + JSON.stringify({datum: tempDate,menge: tempMenge}) + "]"
+     } else {
+       tempArray[counter] = JSON.stringify({datum: tempDate,menge: tempMenge}) + "]"
+     }
+  }
+  
+  if (localStorage.getItem("DailyGoal")) {
+    goal = parseInt(localStorage.getItem("DailyGoal"));
+  }
+  document.getElementById("DailyGoal").value = goal
+  document.getElementById("total").innerHTML = total
+  let topLevel = ((total*180)/goal);
+  graphicTotal = total
+  if (graphicTotal > goal) {
+    graphicTotal = goal
+  }
+  if (topLevel > 180) {
+    topLevel = 180;
+  }
+
+  //Daten mit ausgelesenen Array erstellen und CHarts erstellen
+  if (tempArray.length > 0) {
+     var json_data = JSON.parse(tempArray)
+     localStorage.setItem('history',JSON.stringify(json_data));
+     for(let i = 0; i < tempArray.length;i++) {
+	   if (json_data[i].menge < goal) {
+             createChart(json_data[i].menge, goal-json_data[i].menge, i, json_data[i].datum);
+	   } else
+	     createChart(json_data[i].menge, 0, i, json_data[i].datum);
+        }
+  }
+
+  //URL Parameter finden
+  var vars = {};
+  var parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m,key,value) {
+  vars[key] = value;
+  });
+  //Wasser eintragen z.B. menge=200
+  paraMenge=vars["menge"];
+  if (paraMenge > 0) {
+    addWasser(parseInt(paraMenge));
+    window.location.href = websiteUrl;
+  }
+  //Tagesbedarf ändern z.B. setGoal=2000
+  paraSetGoal=vars["setGoal"];
+  if (paraSetGoal > 0) {
+    var s = document.getElementById("DailyGoal");
+    s.value = paraSetGoal;
+    changeGoal();
+    window.location.href = websiteUrl;
+  }
+  //Eintragungen zurücksetzen z.B. reset=1
+  paraReset=vars["reset"];
+  if (paraReset > 0) {
+    clearStorage();
+    window.location.href = websiteUrl;
+  }
+
+  //berechnen der Grafik im Glas
+  const waterLevel = document.getElementById("waterLevel")
+  waterLevel.style.borderTop = topLevel + "px solid rgb(45, 110, 251)";
+  waterLevel.style.borderLeft = graphicTotal/125 + "px solid transparent";
+  waterLevel.style.borderRight = graphicTotal/125 + "px solid transparent";
+  waterLevel.style.right = 44 - graphicTotal/125 + "px";
+
+  function addWasser(menge) {
+//      broken with iOS Devices
+//    new Notification(menge +" Wasser getrunken")
+    let date = new Date(document.getElementById('datum').value).toLocaleDateString("de-DE");
+    if (localStorage.getItem('history') !== null) {
+      const toStore = "[" + localStorage.getItem('history').replace("[","").replace("]","") + "," + JSON.stringify({datum: date,menge: menge}) + "]";
+      localStorage.setItem('history',toStore);
+    } else {
+      const toStore = "[" + JSON.stringify({datum: date,menge: menge}) + "]";
+      localStorage.setItem('history',toStore);
+    }
+  }
+
+  function changeGoal() {
+    goal = document.getElementById("DailyGoal").value;
+    localStorage.setItem("DailyGoal", goal);
+  }
+
+function createChart(total, goal, id, date) {
+  // Daten definieren
+  var data = {
+    labels: ["Getrunken", ""],
+    datasets: [{
+      data: [total, goal],
+
+      backgroundColor: [
+        "cornflowerblue",
+        "lightgray"
+      ],
+      borderColor: [
+        "cornflowerblue",
+        "lightgray"
+      ],
+      borderWidth: 1
+    }]
+  };
+
+  // Optionen definieren
+  var options = {
+    cutoutPercentage: 60,
+    animation: {
+      animateRotate: true,
+      animateScale: true
+    },
+    legend: {
+      display: false
+    }
+  };
+
+  // Kreisdiagramm erstellen
+  var ctx = document.getElementById('myChart'+id).getContext('2d');
+  var myChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: data,
+    options: options
+  });
+
+  var txt = document.getElementById('desc' + id);
+  txt.textContent=date;
+
+  txt = document.getElementById('val' + id);
+  txt.textContent=total;
+}
+
+  function createTable(inhalt) {
+    var headers = ["Datum", "Menge"];
+    var table = document.createElement("TABLE");  //makes a table element for the page
+        
+    for(var i = 0; i < inhalt.length; i++) {
+        var row = table.insertRow(i);
+        row.insertCell(0).innerHTML = inhalt[i].datum;
+        row.insertCell(1).innerHTML = inhalt[i].menge;
+    }
+
+    var header = table.createTHead();
+    var headerRow = header.insertRow(0);
+    for(var i = 0; i < headers.length; i++) {
+        headerRow.insertCell(i).innerHTML = headers[i];
+    }
+
+    document.getElementById('table').appendChild(table);
+  }
+
+  function clearStorage() {
+     localStorage.clear()
+  }
+</script>
+
+</body>
+</html>
