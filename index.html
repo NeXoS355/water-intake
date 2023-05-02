@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
   <head>
     <link rel="icon" type="image/png" href="/water-glas.png">
@@ -5,7 +6,7 @@
     <style>
       html * {
 	font-family:Arial;
-	font-size: 24;
+	font-size: 24px;
       }
       h1 {
         text-align: center;
@@ -40,14 +41,14 @@
         width: 75%;
         font-size: 1.2em;
         background-color: lightblue;
-		color: black;
+	color: black;
         border: solid black;
         border-radius: 0.5em;
         padding: 1em;
         margin-top: 0.5em;
       }
       #reset {
-		background-color: tomato;
+	background-color: tomato;
       }
       #total {
         font-size: 2em;
@@ -74,22 +75,22 @@
         z-index: -1;
       }
       #water-glass-desc {
-		position: absolute;
-		top: 53em;
+	position: absolute;
+	top: 53em;
       }
       #canvas {
-		position: absolute;
-		top: 1em;
-		width: 25%;
+	position: absolute;
+	top: 1em;
+	width: 25%;
       }
       #chart {
-		margin: 1em 0 0 -20%;
+	margin: 1em 0 0 -20%;
       }
       #chart_desc_date {
-		position: absolute;
-		text-align: center;
-		width: 124%;
-		margin: -85% 0%;
+	position: absolute;
+	text-align: center;
+	width: 124%;
+	margin: -85% 0%;
       }
       #chart_desc_val {
         position: absolute;
@@ -104,7 +105,7 @@
 
 <h1>Mein Tages-Wasserlogbuch</h1>
 
-<form>
+<form accept-charset="utf-8">
   Datum: <input type="date" id="datum" value=""><br>
   Uhrzeit: <input type="time" id="uhrzeit" value=""><br>
   Tagesbedarf [ml]: <input type="number" id="DailyGoal"> 
@@ -176,7 +177,7 @@
 
 
 <script type = "text/javascript">
-	let websiteUrl = https://example.org
+	let websiteUrl = "https://example.org"
 
 //  let btn = document.getElementById('push');
 //  btn.addEventListener("click", () => {
