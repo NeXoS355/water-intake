@@ -177,7 +177,6 @@
 
 
 <script type = "text/javascript">
-	let websiteUrl = "https://example.org"
 
 //  let btn = document.getElementById('push');
 //  btn.addEventListener("click", () => {
@@ -295,7 +294,8 @@
   paraMenge=vars["menge"];
   if (paraMenge > 0) {
     addWasser(parseInt(paraMenge));
-    window.location.href = websiteUrl;
+    window.history.pushState({}, document.title, "/");
+    window.location.reload();
   }
   //Tagesbedarf ändern z.B. setGoal=2000
   paraSetGoal=vars["setGoal"];
@@ -303,13 +303,15 @@
     var s = document.getElementById("DailyGoal");
     s.value = paraSetGoal;
     changeGoal();
-    window.location.href = websiteUrl;
+    window.history.pushState({}, document.title, "/");
+    window.location.reload();
   }
   //Eintragungen zurücksetzen z.B. reset=1
   paraReset=vars["reset"];
   if (paraReset > 0) {
     clearStorage();
-    window.location.href = websiteUrl;
+    window.history.pushState({}, document.title, "/");
+    window.location.reload();
   }
 
   //berechnen der Grafik im Glas
