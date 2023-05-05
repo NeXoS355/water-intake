@@ -1,0 +1,110 @@
+html * {
+  font-family:Arial;
+  font-size: 24px;
+}
+
+h1 {
+  text-align: center;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 80%;
+  margin: 0 auto;
+  justify-content: space-between;
+}
+
+input[type="date"] {
+  width: 50%;
+  font-size: 1.2em;
+  border: solid;
+  border-radius: 15px;
+}
+
+input[type="time"] {
+  width: 50%;
+  font-size: 1.2em;
+  border: solid;
+  border-radius: 15px;
+}
+
+input[type="number"] {
+  width: 50%;
+  font-size: 1.2em;
+  border: solid;
+  border-radius: 15px;
+}
+
+input[type="submit"] {
+  width: 75%;
+  font-size: 1.2em;
+  background-color: lightblue;
+  color: black;
+  border: solid black;
+  border-radius: 0.5em;
+  padding: 1em;
+  margin-top: 0.5em;
+}
+
+#reset {
+  background-color: tomato;
+}
+
+#total {
+  font-size: 2em;
+  font-weight: bold;
+  color: green;
+}
+
+.water-glas {
+  height: 8em;
+  position: absolute;
+  top: 58em;
+  display: flex;
+  align-items: center;
+  z-index: 2;
+}
+
+.water-glas img {
+  height: 100%;
+  object-fit: cover;
+}
+
+#waterLevel {
+  position: absolute;
+  background-color: transparent;
+  bottom: 10px;
+  width:54%;
+  z-index: -1;
+}
+
+#water-glass-desc {
+  position: absolute;
+  top: 53em;
+}
+
+#canvas {
+  position: absolute;
+  top: 1em;
+  width: 25%;
+}
+
+#chart {
+  margin: 1em 0 0 -20%;
+}
+
+#chart_desc_date {
+  position: absolute;
+  text-align: center;
+  width: 124%;
+  margin: -85% 0%;
+}
+
+#chart_desc_val {
+  position: absolute;
+  text-align: center;
+  width: 120%;
+  margin: -48% 0%;
+}
