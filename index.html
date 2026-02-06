@@ -1,84 +1,97 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <meta charset="UTF-8">
     <link rel="icon" type="image/png" href="/water-glas.png">
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" type="text/css" href="style.css">
   </head>
 <body>
 
-<h1>Mein Tages-Wasserlogbuch</h1>
+<div class="container">
+  <header class="header">
+    <h1>Mein Tages-Wasserlogbuch</h1>
+    <div class="header-buttons">
+      <button type="button" id="notifications" onclick="enableNotifications()">Benachrichtigungen</button>
+      <button type="button" id="reset" onclick="clearStorage()">Reset</button>
+    </div>
+  </header>
 
-<form accept-charset="utf-8">
-  Datum: <input type="date" id="datum" value=""><br>
-  Uhrzeit: <input type="time" id="uhrzeit" value=""><br>
-  Tagesbedarf [ml]: <input type="number" id="DailyGoal"> 
-  <input type="submit" id="goal" value=change onclick="changeGoal()"><br><br>
-  <input type="submit" id="200" value=200 onclick="addWasser(200)">
-  <input type="submit" id="300" value=300 onclick="addWasser(300)">
-  <input type="submit" id="400" value=400 onclick="addWasser(400)">
-  <input type="submit" id="500" value=500 onclick="addWasser(500)"><br><br>
-  <input type="submit" id="reset" value="Reset" onclick="clearStorage()"><br><br>
-<!--  <button class="js-push-btn" type="button" id="push">Request Permission</button>
-    <section class="subscription-details js-subscription-details is-invisible">
-      <p>Once you've subscribed your user, you'd send their subscription to your
-      server to store in a database so that when you want to send a message
-      you can lookup the subscription and send a message to it.</p>
-      <p>To simplify things for this code lab copy the following details
-      into the <a href="https://web-push-codelab.glitch.me/">Push Companion
-      Site</a> and it'll send a push message for you, using the application
-      server keys on the site - so make sure they match.</p>
-      <pre><code class="js-subscription-json"></code></pre>
-    </section> -->
-  <div class="water-glas">
-    <img src="water-glas.png" alt="Wasserglas">
-    <div id="waterLevel"></div>
-  </div>
-  <div id="water-glass-desc">
-    <p>Insgesamt heute: <span id="total">0</span> ml</p>
-  </div>
-</form> 
-<div id="canvas">
-  <div id="chart">
-    <canvas id="myChart0"></canvas><br>
-    <p id="chart_desc_date"><span id="desc0"></span></p>
-    <p id="chart_desc_val"><span id="val0"></span></p>
-  </div>
-  <div id="chart">
-    <canvas id="myChart1"></canvas><br>
-    <p id="chart_desc_date"><span id="desc1"></span></p>
-    <p id="chart_desc_val"><span id="val1"></span></p>
-  </div>
-  <div id="chart">
-    <canvas id="myChart2"></canvas><br>
-    <p id="chart_desc_date"><span id="desc2"></span></p>
-    <p id="chart_desc_val"><span id="val2"></span></p>
-  </div>
-  <div id="chart">
-    <canvas id="myChart3"></canvas><br>
-    <p id="chart_desc_date"><span id="desc3"></span></p>
-    <p id="chart_desc_val"><span id="val3"></span></p>
-  </div>
-  <div id="chart">
-    <canvas id="myChart4"></canvas><br>
-    <p id="chart_desc_date"><span id="desc4"></span></p>
-    <p id="chart_desc_val"><span id="val4"></span></p>
-  </div>
-  <div id="chart">
-    <canvas id="myChart5"></canvas><br>
-    <p id="chart_desc_date"><span id="desc5"></span></p>
-    <p id="chart_desc_val"><span id="val5"></span></p>
-  </div>
-  <div id="chart">
-    <canvas id="myChart6"></canvas><br>
-    <p id="chart_desc_date"><span id="desc6"></span></p>
-    <p id="chart_desc_val"><span id="val6"></span></p>
-  </div>
+  <main class="main-content">
+    <section class="input-section">
+      <div class="input-row">
+        <label>Datum: <input type="date" id="datum" value=""></label>
+      </div>
+      <div class="input-row">
+        <label>Uhrzeit: <input type="time" id="uhrzeit" value=""></label>
+      </div>
+      <div class="input-row">
+        <label>Tagesbedarf [ml]: <input type="number" id="DailyGoal"></label>
+        <button type="button" id="goal" onclick="changeGoal()">Speichern</button>
+      </div>
+    </section>
+
+    <section class="water-section">
+      <div class="water-buttons">
+        <button type="button" class="water-btn" onclick="addWasser(200)">+ 200 ml</button>
+        <button type="button" class="water-btn" onclick="addWasser(300)">+ 300 ml</button>
+        <button type="button" class="water-btn" onclick="addWasser(400)">+ 400 ml</button>
+        <button type="button" class="water-btn" onclick="addWasser(500)">+ 500 ml</button>
+      </div>
+
+      <div class="status-section">
+        <div class="water-fill" id="waterFill"></div>
+        <div class="water-total">
+          <span id="total">0</span>
+          <span class="unit">ml</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <section class="charts-section" id="canvas">
+    <div class="chart" id="chart">
+      <canvas id="myChart0"></canvas>
+      <p class="chart-date"><span id="desc0"></span></p>
+      <p class="chart-val"><span id="val0"></span></p>
+    </div>
+    <div class="chart" id="chart">
+      <canvas id="myChart1"></canvas>
+      <p class="chart-date"><span id="desc1"></span></p>
+      <p class="chart-val"><span id="val1"></span></p>
+    </div>
+    <div class="chart" id="chart">
+      <canvas id="myChart2"></canvas>
+      <p class="chart-date"><span id="desc2"></span></p>
+      <p class="chart-val"><span id="val2"></span></p>
+    </div>
+    <div class="chart" id="chart">
+      <canvas id="myChart3"></canvas>
+      <p class="chart-date"><span id="desc3"></span></p>
+      <p class="chart-val"><span id="val3"></span></p>
+    </div>
+    <div class="chart" id="chart">
+      <canvas id="myChart4"></canvas>
+      <p class="chart-date"><span id="desc4"></span></p>
+      <p class="chart-val"><span id="val4"></span></p>
+    </div>
+    <div class="chart" id="chart">
+      <canvas id="myChart5"></canvas>
+      <p class="chart-date"><span id="desc5"></span></p>
+      <p class="chart-val"><span id="val5"></span></p>
+    </div>
+    <div class="chart" id="chart">
+      <canvas id="myChart6"></canvas>
+      <p class="chart-date"><span id="desc6"></span></p>
+      <p class="chart-val"><span id="val6"></span></p>
+    </div>
+  </section>
 </div>
 
-<script src="./Chart.js"></script>
-<!-- <script src="scripts/main.js"></script> -->
-<script src="./logic.js" type="text/javascript"></script>
+<div id="toast" class="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="./logic.js" type="module"></script>
 
 </body>
 </html>
