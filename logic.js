@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
-import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-messaging.js";
+import { getMessaging, getToken, deleteToken, onMessage } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-messaging.js";
 
 // HTTPS erzwingen (Sicherheit)
 if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
@@ -135,6 +135,7 @@ async function enableNotifications() {
     if (currentToken) {
       console.log('FCM Token:', currentToken);
       safeSetItem('fcmToken', currentToken);
+      updateNotificationButton();
       showToast('Benachrichtigungen aktiviert!', 'success');
     } else {
       showToast('Kein Token erhalten', 'error');
@@ -145,7 +146,49 @@ async function enableNotifications() {
   }
 }
 
-window.enableNotifications = enableNotifications;
+// Funktion zum Deaktivieren der Benachrichtigungen
+async function disableNotifications() {
+  try {
+    await deleteToken(messaging);
+    localStorage.removeItem('fcmToken');
+
+    // Service Worker deregistrieren
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    for (const reg of registrations) {
+      await reg.unregister();
+    }
+
+    updateNotificationButton();
+    showToast('Benachrichtigungen deaktiviert', 'success');
+  } catch (error) {
+    console.error('Fehler beim Deaktivieren:', error);
+    showToast(`Fehler: ${error.message}`, 'error');
+  }
+}
+
+// Toggle-Funktion für den Button
+function toggleNotifications() {
+  if (safeGetItem('fcmToken')) {
+    disableNotifications();
+  } else {
+    enableNotifications();
+  }
+}
+
+// Button-Text je nach Status aktualisieren
+function updateNotificationButton() {
+  const btn = document.getElementById('notifications');
+  if (!btn) return;
+  if (safeGetItem('fcmToken')) {
+    btn.innerHTML = '<i class="fa-solid fa-bell-slash"></i>';
+    btn.setAttribute('aria-label', 'Benachrichtigungen deaktivieren');
+  } else {
+    btn.innerHTML = '<i class="fa-solid fa-bell"></i>';
+    btn.setAttribute('aria-label', 'Benachrichtigungen aktivieren');
+  }
+}
+
+document.getElementById('notifications')?.addEventListener('click', toggleNotifications);
 
 // ============================================
 // Validierung
@@ -188,9 +231,11 @@ function updateWaterDisplay() {
 
   // Wasserfüllung aktualisieren (prozentual zum Tagesziel)
   const waterFill = document.getElementById("waterFill");
-  if (waterFill && goal > 0) {
-    const percentage = Math.min((total / goal) * 100, 100);
+  if (waterFill) {
+    const effectiveGoal = goal > 0 ? goal : 2000;
+    const percentage = Math.min((total / effectiveGoal) * 100, 100);
     waterFill.style.height = `${percentage}%`;
+    waterFill.style.opacity = total > 0 ? '1' : '0';
   }
 }
 
@@ -225,13 +270,26 @@ document.getElementById("DailyGoal").value = goal;
 total = getTodayTotal();
 updateWaterDisplay();
 
-// Datum & Uhrzeit mit aktuellen Daten vorbelegen
-const today = new Date();
-const dateString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-const timeString = `${String(today.getHours()).padStart(2, '0')}:${String(today.getMinutes()).padStart(2, '0')}`;
+// Benachrichtigungs-Button initialisieren
+updateNotificationButton();
 
-document.getElementById('datum').value = dateString;
-document.getElementById('uhrzeit').value = timeString;
+// Datum & Uhrzeit mit aktuellen Daten vorbelegen
+function updateDateTimeInputs() {
+  const now = new Date();
+  document.getElementById('datum').value =
+    `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  document.getElementById('uhrzeit').value =
+    `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+}
+
+updateDateTimeInputs();
+
+// Datum & Uhrzeit aktualisieren wenn die App wieder in den Vordergrund kommt
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    updateDateTimeInputs();
+  }
+});
 
 // Charts erstellen
 const items = safeParseJSON(safeGetItem('history'), []);
@@ -425,7 +483,13 @@ function clearStorage() {
   }
 }
 
-// Funktionen global verfügbar machen
-window.addWasser = addWasser;
-window.changeGoal = changeGoal;
-window.clearStorage = clearStorage;
+// Event-Listener registrieren
+document.getElementById('goal')?.addEventListener('click', changeGoal);
+document.getElementById('reset')?.addEventListener('click', clearStorage);
+
+document.querySelectorAll('.water-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const menge = parseInt(btn.dataset.menge, 10);
+    addWasser(menge);
+  });
+});

@@ -30,7 +30,7 @@ body {
 }
 
 .header h1 {
-  font-size: 1.1rem;
+  font-size: 1.0rem;
   margin: 0;
   color: #333;
 }
@@ -84,21 +84,27 @@ body {
   align-items: center;
   gap: 0.5rem;
   flex: 1;
-  font-size: 1rem;
+  font-size: 0.7rem;
+}
+
+.label-text {
+  display: inline-block;
+  min-width: 6rem;
+  white-space: nowrap;
 }
 
 .input-row input {
   flex: 1;
   min-width: 100px;
-  padding: 0.8rem;
-  font-size: 1.1rem;
+  padding: 0.35rem;
+  font-size: 0.7rem;
   border: 2px solid #ddd;
   border-radius: 0.5rem;
 }
 
 .input-row button {
-  padding: 0.8rem 1.2rem;
-  font-size: 1rem;
+  padding: 0.5rem 0.8rem;
+  font-size: 0.7rem;
   background: #2196F3;
   color: white;
   border: none;
@@ -106,23 +112,22 @@ body {
   cursor: pointer;
 }
 
-/* Wasser-Bereich: Buttons links, Status rechts */
+/* Wasser-Bereich: Buttons oben, Status unten */
 .water-section {
   display: flex;
+  flex-direction: column;
   gap: 1rem;
-  align-items: stretch;
 }
 
 .water-buttons {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 0.6rem;
-  flex: 1;
 }
 
 .water-btn {
-  padding: 1.2rem;
-  font-size: 1.5rem;
+  padding: 1.2rem 1.2rem;
+  font-size: 1.2rem;
   font-weight: bold;
   background: #64B5F6;
   color: white;
@@ -141,50 +146,136 @@ body {
   background: #2196F3;
 }
 
-/* Status-Bereich rechts mit Wasserfüllung */
+/* Status-Bereich unter den Buttons */
 .status-section {
-  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 1rem;
-  background: #E0E0E0;
-  border-radius: 0.75rem;
-  min-width: 140px;
-  overflow: hidden;
+  gap: 0.6rem;
+  padding: 1rem 0 0.5rem;
 }
 
+/* Glas-Wrapper fuer Rand der nicht abgeschnitten wird */
+.glass {
+  position: relative;
+  padding-top: 10px;
+}
+
+/* Glasrand oben */
+.glass::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: -5px;
+  right: -5px;
+  height: 8px;
+  background: rgba(180, 210, 240, 0.5);
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  z-index: 4;
+}
+
+/* Glaskoerper */
+.glass-body {
+  position: relative;
+  width: 110px;
+  height: 180px;
+  border: 3px solid rgba(180, 210, 240, 0.7);
+  border-top: none;
+  border-radius: 5px 5px 25px 25px;
+  background: rgba(220, 235, 250, 0.15);
+  overflow: hidden;
+  box-shadow:
+    inset 0 0 20px rgba(255, 255, 255, 0.3),
+    inset 5px 0 15px rgba(255, 255, 255, 0.15),
+    0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+/* Lichtreflex auf dem Glas */
+.glass-body::after {
+  content: '';
+  position: absolute;
+  top: 10px;
+  left: 8px;
+  width: 6px;
+  height: 60%;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.5),
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  border-radius: 3px;
+  z-index: 3;
+}
+
+/* Wasserfuellung */
 .water-fill {
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
   height: 0%;
-  background: linear-gradient(to top, #1976D2, #64B5F6);
-  transition: height 0.5s ease;
-  z-index: 0;
-}
-
-.water-total {
-  text-align: center;
-  position: relative;
+  background: linear-gradient(to top, #1565C0, #42A5F5, #64B5F6);
+  transition: height 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 0 0 20px 20px;
   z-index: 1;
 }
 
+/* Wellen-Effekt auf der Wasseroberflaeche */
+.wave {
+  position: absolute;
+  top: -12px;
+  left: 0;
+  right: 0;
+  height: 24px;
+  overflow: hidden;
+}
+
+.wave::before,
+.wave::after {
+  content: '';
+  position: absolute;
+  width: 300%;
+  height: 300%;
+  top: -280%;
+  left: -100%;
+  border-radius: 43%;
+  animation: wave-rotate 4s linear infinite;
+}
+
+.wave::before {
+  background: rgba(100, 181, 246, 0.6);
+}
+
+.wave::after {
+  background: rgba(66, 165, 245, 0.4);
+  animation-duration: 5.5s;
+  animation-direction: reverse;
+  border-radius: 46%;
+}
+
+@keyframes wave-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Mengenanzeige unter dem Glas */
+.water-total {
+  text-align: center;
+}
+
 #total {
-  font-size: 3rem;
+  font-size: 2.8rem;
   font-weight: bold;
   color: #333;
   display: block;
   line-height: 1;
-  text-shadow: 0 0 10px rgba(255,255,255,0.8);
 }
 
 .unit {
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   color: #555;
-  text-shadow: 0 0 10px rgba(255,255,255,0.8);
 }
 
 /* Charts-Bereich */
@@ -244,8 +335,8 @@ body {
   transform: translateY(100%);
   background: #333;
   color: white;
-  padding: 1.5rem 1rem;
-  font-size: 1.4rem;
+  padding: 1.0rem 1rem;
+  font-size: 1.2rem;
   font-weight: bold;
   opacity: 0;
   transition: transform 0.3s ease, opacity 0.3s ease;
