@@ -284,44 +284,6 @@ body {
   opacity: 0;
 }
 
-/* Wellen-Effekt auf der Wasseroberflaeche */
-.wave {
-  position: absolute;
-  top: -12px;
-  left: 0;
-  right: 0;
-  height: 24px;
-  overflow: hidden;
-}
-
-.wave::before,
-.wave::after {
-  content: '';
-  position: absolute;
-  width: 300%;
-  height: 300%;
-  top: -280%;
-  left: -100%;
-  border-radius: 43%;
-  animation: wave-rotate 4s linear infinite;
-}
-
-.wave::before {
-  background: var(--wave-color-1);
-}
-
-.wave::after {
-  background: var(--wave-color-2);
-  animation-duration: 5.5s;
-  animation-direction: reverse;
-  border-radius: 46%;
-}
-
-@keyframes wave-rotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
 /* Mengenanzeige unter dem Glas */
 .water-total {
   text-align: center;
