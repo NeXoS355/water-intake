@@ -1,6 +1,3 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
-import { getMessaging, getToken, deleteToken, onMessage } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-messaging.js";
-
 // HTTPS erzwingen (Sicherheit)
 if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
   location.replace(`https:${window.location.href.substring(window.location.protocol.length)}`);
@@ -80,34 +77,58 @@ function safeParseJSON(jsonString, defaultValue = null) {
 }
 
 // ============================================
-// Firebase Konfiguration
+// Firebase (lazy-loaded, non-blocking)
 // ============================================
 
-const firebaseConfig = {
-  apiKey: "AIzaSyBoLabzHIJQzenkaN28wf29HbX3P1CPEqE",
-  authDomain: "water-intake-ded46.firebaseapp.com",
-  projectId: "water-intake-ded46",
-  storageBucket: "water-intake-ded46.firebasestorage.app",
-  messagingSenderId: "703290574513",
-  appId: "1:703290574513:web:5d5c370facae9ba5810490",
-  measurementId: "G-FXZX32HTL6"
-};
+let messaging = null;
 
-// Firebase initialisieren
-const app = initializeApp(firebaseConfig);
-const messaging = getMessaging(app);
+async function initFirebase() {
+  try {
+    const [{ initializeApp }, { getMessaging, onMessage }] = await Promise.all([
+      import("https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js"),
+      import("https://www.gstatic.com/firebasejs/11.1.0/firebase-messaging.js")
+    ]);
 
-// Nachrichten empfangen, wenn die Anwendung aktiv ist
-onMessage(messaging, (payload) => {
-  console.log('Nachricht empfangen:', payload);
-  if (payload.notification) {
-    showToast(payload.notification.title, 'success');
+    const firebaseConfig = {
+      apiKey: "AIzaSyBoLabzHIJQzenkaN28wf29HbX3P1CPEqE",
+      authDomain: "water-intake-ded46.firebaseapp.com",
+      projectId: "water-intake-ded46",
+      storageBucket: "water-intake-ded46.firebasestorage.app",
+      messagingSenderId: "703290574513",
+      appId: "1:703290574513:web:5d5c370facae9ba5810490",
+      measurementId: "G-FXZX32HTL6"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    messaging = getMessaging(app);
+
+    onMessage(messaging, (payload) => {
+      console.log('Nachricht empfangen:', payload);
+      if (payload.notification) {
+        showToast(payload.notification.title, 'success');
+      }
+    });
+
+    console.log('Firebase initialisiert');
+  } catch (error) {
+    console.warn('Firebase konnte nicht geladen werden:', error.message);
   }
-});
+}
+
+// Firebase im Hintergrund laden
+initFirebase();
 
 // Funktion zum Aktivieren der Benachrichtigungen
 async function enableNotifications() {
   try {
+    if (!messaging) {
+      await initFirebase();
+      if (!messaging) {
+        showToast('Firebase nicht verfügbar', 'error');
+        return;
+      }
+    }
+
     if (!('Notification' in window)) {
       showToast('Browser unterstützt keine Benachrichtigungen', 'error');
       return;
@@ -127,6 +148,7 @@ async function enableNotifications() {
     const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
     console.log('Service Worker registriert:', registration);
 
+    const { getToken } = await import("https://www.gstatic.com/firebasejs/11.1.0/firebase-messaging.js");
     const currentToken = await getToken(messaging, {
       vapidKey: "BMzoBwTBIVGc8By7WNE1H6x_scsGlXhkylwE0IW-akUU_hhR-1IGAXOOXE47ZlxDC8Jok-KZ1A_K-7exZm4PkH8",
       serviceWorkerRegistration: registration
@@ -149,7 +171,10 @@ async function enableNotifications() {
 // Funktion zum Deaktivieren der Benachrichtigungen
 async function disableNotifications() {
   try {
-    await deleteToken(messaging);
+    if (messaging) {
+      const { deleteToken } = await import("https://www.gstatic.com/firebasejs/11.1.0/firebase-messaging.js");
+      await deleteToken(messaging);
+    }
     localStorage.removeItem('fcmToken');
 
     // Service Worker deregistrieren
@@ -189,6 +214,72 @@ function updateNotificationButton() {
 }
 
 document.getElementById('notifications')?.addEventListener('click', toggleNotifications);
+
+// ============================================
+// Theme-Management
+// ============================================
+
+const THEME_COLORS = {
+  dark: '#0B0F19',
+  light: '#F0F4F8'
+};
+
+let chartsReady = false;
+
+function getChartColors() {
+  const theme = document.documentElement.getAttribute('data-theme');
+  if (theme === 'light') {
+    return { filled: '#0891B2', remaining: '#E0E0E0' };
+  }
+  return { filled: '#00D4FF', remaining: 'rgba(255, 255, 255, 0.08)' };
+}
+
+function setTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  safeSetItem('theme', theme);
+
+  // Meta theme-color aktualisieren
+  const metaTheme = document.querySelector('meta[name="theme-color"]');
+  if (metaTheme) {
+    metaTheme.setAttribute('content', THEME_COLORS[theme] || THEME_COLORS.dark);
+  }
+
+  // Toggle-UI aktualisieren
+  const toggle = document.getElementById('theme-toggle');
+  const labelLight = document.getElementById('label-light');
+  const labelDark = document.getElementById('label-dark');
+
+  if (toggle) {
+    if (theme === 'dark') {
+      toggle.classList.add('active');
+    } else {
+      toggle.classList.remove('active');
+    }
+  }
+
+  if (labelLight) {
+    labelLight.classList.toggle('active', theme === 'light');
+  }
+  if (labelDark) {
+    labelDark.classList.toggle('active', theme === 'dark');
+  }
+
+  // Charts mit neuen Farben neu aufbauen (nur wenn bereits initialisiert)
+  if (chartsReady) {
+    rebuildAllCharts();
+  }
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme');
+  setTheme(current === 'dark' ? 'light' : 'dark');
+}
+
+// Theme aus localStorage laden
+const savedTheme = safeGetItem('theme', 'dark');
+setTheme(savedTheme);
+
+document.getElementById('theme-toggle')?.addEventListener('click', toggleTheme);
 
 // ============================================
 // Validierung
@@ -291,60 +382,33 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
-// Charts erstellen
-const items = safeParseJSON(safeGetItem('history'), []);
-if (items && items.length > 0) {
-  // Nach Datum sortieren (neueste zuerst)
-  items.sort((a, b) => {
-    const [d1, m1, y1] = a.datum.split('.');
-    const [d2, m2, y2] = b.datum.split('.');
-    return new Date(y2, m2 - 1, d2) - new Date(y1, m1 - 1, d1);
-  });
-
-  // Tägliche Summen berechnen
-  const dailyTotals = {};
-  for (const item of items) {
-    dailyTotals[item.datum] = (dailyTotals[item.datum] || 0) + item.menge;
-  }
-
-  // Charts erstellen (max 7 Tage)
-  const dates = Object.keys(dailyTotals);
-  dates.sort((a, b) => {
-    const [d1, m1, y1] = a.split('.');
-    const [d2, m2, y2] = b.split('.');
-    return new Date(y2, m2 - 1, d2) - new Date(y1, m1 - 1, d1);
-  });
-
-  for (let i = 0; i < Math.min(dates.length, 7); i++) {
-    const date = dates[i];
-    const dayTotal = dailyTotals[date];
-    const remaining = dayTotal < goal ? goal - dayTotal : 0;
-    createChart(dayTotal, remaining, i, date);
-  }
-}
-
-// URL Parameter verarbeiten
+// URL Parameter verarbeiten (vor Charts, damit Einträge sofort sichtbar sind)
 const urlParams = new URLSearchParams(window.location.search);
 
 const paraMenge = validateMenge(urlParams.get("menge"));
 if (paraMenge !== null) {
   addWasser(paraMenge);
-  window.history.pushState({}, document.title, "/");
 }
 
 const paraSetGoal = validateGoal(urlParams.get("setGoal"));
 if (paraSetGoal !== null) {
   document.getElementById("DailyGoal").value = paraSetGoal;
   changeGoal();
-  window.history.pushState({}, document.title, "/");
 }
 
 const paraReset = urlParams.get("reset");
 if (paraReset === "1") {
   clearStorage();
-  window.history.pushState({}, document.title, "/");
-  window.location.reload();
 }
+
+// URL immer bereinigen wenn Parameter vorhanden waren
+if (window.location.search) {
+  window.history.replaceState({}, document.title, '/');
+}
+
+// Charts erstellen (nach URL-Params, damit neue Einträge enthalten sind)
+rebuildAllCharts();
+chartsReady = true;
 
 // ============================================
 // Funktionen
@@ -358,12 +422,9 @@ function addWasser(menge) {
   }
 
   const dateInput = document.getElementById('datum')?.value;
-  if (!dateInput) {
-    showToast('Bitte Datum auswählen', 'error');
-    return;
-  }
-
-  const date = new Date(dateInput).toLocaleDateString("de-DE");
+  const date = dateInput
+    ? new Date(dateInput).toLocaleDateString("de-DE")
+    : new Date().toLocaleDateString("de-DE");
   const todayString = new Date().toLocaleDateString("de-DE");
 
   // Aktuellen History-Array laden
@@ -407,18 +468,25 @@ function createChart(totalValue, goalValue, id, date) {
   const canvas = document.getElementById(`myChart${id}`);
   if (!canvas) return;
 
+  // Existierende Chart-Instanz zerstören, bevor eine neue erstellt wird
+  if (chartInstances[id]) {
+    chartInstances[id].destroy();
+  }
+
   // Prüfen ob das der heutige Chart ist
   const todayString = new Date().toLocaleDateString("de-DE");
   if (date === todayString) {
     todayChartIndex = id;
   }
 
+  const chartColors = getChartColors();
+
   const data = {
     labels: ["Getrunken", ""],
     datasets: [{
       data: [totalValue, goalValue],
-      backgroundColor: ["#64B5F6", "#E0E0E0"],
-      borderColor: ["#64B5F6", "#E0E0E0"],
+      backgroundColor: [chartColors.filled, chartColors.remaining],
+      borderColor: [chartColors.filled, chartColors.remaining],
       borderWidth: 1
     }]
   };
@@ -447,22 +515,63 @@ function createChart(totalValue, goalValue, id, date) {
   if (valElement) valElement.textContent = totalValue;
 }
 
-function updateTodayChart() {
-  // Falls heute noch kein Chart existiert, erstellen wir einen neuen
-  const todayString = new Date().toLocaleDateString("de-DE");
+function rebuildAllCharts() {
+  // Alle bestehenden Charts zerstören
+  for (const id in chartInstances) {
+    chartInstances[id].destroy();
+    delete chartInstances[id];
+  }
+  todayChartIndex = null;
 
+  // Beschriftungen zurücksetzen
+  for (let i = 0; i < 7; i++) {
+    const descEl = document.getElementById(`desc${i}`);
+    const valEl = document.getElementById(`val${i}`);
+    if (descEl) descEl.textContent = '';
+    if (valEl) valEl.textContent = '';
+  }
+
+  const items = safeParseJSON(safeGetItem('history'), []);
+  if (!items || items.length === 0) return;
+
+  // Tägliche Summen berechnen
+  const dailyTotals = {};
+  for (const item of items) {
+    dailyTotals[item.datum] = (dailyTotals[item.datum] || 0) + item.menge;
+  }
+
+  // Nach Datum sortieren (neueste zuerst)
+  const dates = Object.keys(dailyTotals);
+  dates.sort((a, b) => {
+    const [d1, m1, y1] = a.split('.');
+    const [d2, m2, y2] = b.split('.');
+    return new Date(y2, m2 - 1, d2) - new Date(y1, m1 - 1, d1);
+  });
+
+  for (let i = 0; i < Math.min(dates.length, 7); i++) {
+    const date = dates[i];
+    const dayTotal = dailyTotals[date];
+    const remaining = dayTotal < goal ? goal - dayTotal : 0;
+    createChart(dayTotal, remaining, i, date);
+  }
+}
+
+function updateTodayChart() {
   if (todayChartIndex === null) {
-    // Heute ist der erste Eintrag - Chart an Position 0 erstellen
-    const remaining = total < goal ? goal - total : 0;
-    createChart(total, remaining, 0, todayString);
+    // Heute ist der erste Eintrag - alle Charts neu aufbauen,
+    // damit die bisherigen Tage korrekt nach rechts rutschen
+    rebuildAllCharts();
     return;
   }
 
   // Existierenden Chart aktualisieren
   const chart = chartInstances[todayChartIndex];
   if (chart) {
+    const chartColors = getChartColors();
     const remaining = total < goal ? goal - total : 0;
     chart.data.datasets[0].data = [total, remaining];
+    chart.data.datasets[0].backgroundColor = [chartColors.filled, chartColors.remaining];
+    chart.data.datasets[0].borderColor = [chartColors.filled, chartColors.remaining];
     chart.update('active');
 
     // Wert-Anzeige aktualisieren

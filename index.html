@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="de" data-theme="dark">
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Tägliche Wasseraufnahme tracken und Trinkziele erreichen">
-    <meta name="theme-color" content="#64B5F6">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#0B0F19">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="icon" type="image/png" href="/water-glas.png">
     <link rel="apple-touch-icon" href="/water-glas.png">
     <link rel="manifest" href="manifest.json">
@@ -18,7 +18,7 @@
 
 <div class="container">
   <header class="header">
-    <h1>Mein Tages-Wasserlogbuch</h1>
+    <h1>Mein Tages-Wasserlogbuch <span>Hydration Tracker</span></h1>
     <div class="header-buttons">
       <button type="button" id="notifications" aria-label="Benachrichtigungen umschalten"><i class="fa-solid fa-bell"></i></button>
       <button type="button" id="reset" aria-label="Alle Daten zurücksetzen"><i class="fa-solid fa-trash-can"></i></button>
@@ -26,80 +26,108 @@
   </header>
 
   <main class="main-content">
-    <section class="input-section">
-      <div class="input-row">
-        <label><span class="label-text">Datum:</span> <input type="date" id="datum" value=""></label>
+    <!-- Water Glass Visualization -->
+    <section class="glass-section">
+      <div class="glass" role="img" aria-label="Wasserglas-Füllstandsanzeige">
+        <div class="glass-body">
+          <div class="water-fill" id="waterFill">
+            <div class="wave"></div>
+          </div>
+        </div>
       </div>
-      <div class="input-row">
-        <label><span class="label-text">Uhrzeit:</span> <input type="time" id="uhrzeit" value=""></label>
-      </div>
-      <div class="input-row">
-        <label><span class="label-text">Tagesziel [ml]:</span> <input type="number" id="DailyGoal" inputmode="numeric" pattern="[0-9]*" min="500" max="10000" step="1"></label>
-        <button type="button" id="goal" aria-label="Tagesziel speichern"><i class="fa-solid fa-floppy-disk"></i></button>
+      <div class="water-total" aria-live="polite" aria-label="Heutige Trinkmenge">
+        <span id="total">0</span>
+        <span class="unit">ml</span>
       </div>
     </section>
 
+    <!-- Water Amount Buttons -->
     <section class="water-section">
       <div class="water-buttons">
-        <button type="button" class="water-btn" aria-label="200 Milliliter Wasser hinzufügen" data-menge="200">200 ml</button>
-        <button type="button" class="water-btn" aria-label="300 Milliliter Wasser hinzufügen" data-menge="300">300 ml</button>
-        <button type="button" class="water-btn" aria-label="400 Milliliter Wasser hinzufügen" data-menge="400">400 ml</button>
-        <button type="button" class="water-btn" aria-label="500 Milliliter Wasser hinzufügen" data-menge="500">500 ml</button>
+        <button type="button" class="water-btn" aria-label="200 Milliliter Wasser hinzufügen" data-menge="200">
+          <span class="btn-amount">200</span>
+          <span class="btn-unit">ml</span>
+        </button>
+        <button type="button" class="water-btn" aria-label="300 Milliliter Wasser hinzufügen" data-menge="300">
+          <span class="btn-amount">300</span>
+          <span class="btn-unit">ml</span>
+        </button>
+        <button type="button" class="water-btn" aria-label="400 Milliliter Wasser hinzufügen" data-menge="400">
+          <span class="btn-amount">400</span>
+          <span class="btn-unit">ml</span>
+        </button>
+        <button type="button" class="water-btn" aria-label="500 Milliliter Wasser hinzufügen" data-menge="500">
+          <span class="btn-amount">500</span>
+          <span class="btn-unit">ml</span>
+        </button>
       </div>
+    </section>
 
-      <div class="status-section">
-        <div class="glass" role="img" aria-label="Wasserglas-Füllstandsanzeige">
-          <div class="glass-body">
-            <div class="water-fill" id="waterFill">
-              <div class="wave"></div>
-            </div>
-          </div>
+    <!-- Settings -->
+    <section class="settings-card">
+      <p class="settings-title">Einstellungen</p>
+      <div class="input-section">
+        <div class="input-row">
+          <label><span class="label-text">Datum:</span> <input type="date" id="datum" value=""></label>
         </div>
-        <div class="water-total" aria-live="polite" aria-label="Heutige Trinkmenge">
-          <span id="total">0</span>
-          <span class="unit">ml</span>
+        <div class="input-row">
+          <label><span class="label-text">Uhrzeit:</span> <input type="time" id="uhrzeit" value=""></label>
+        </div>
+        <div class="input-row">
+          <label><span class="label-text">Tagesziel [ml]:</span> <input type="number" id="DailyGoal" inputmode="numeric" pattern="[0-9]*" min="500" max="10000" step="1"></label>
+          <button type="button" id="goal" aria-label="Tagesziel speichern"><i class="fa-solid fa-floppy-disk"></i></button>
         </div>
       </div>
     </section>
   </main>
 
+  <!-- 7-Day History Charts -->
   <section class="charts-section" id="canvas" aria-label="Trinkhistorie der letzten 7 Tage">
-    <div class="chart" id="chart">
+    <p class="charts-header">Letzte 7 Tage</p>
+    <div class="chart">
       <canvas id="myChart0"></canvas>
       <p class="chart-date"><span id="desc0"></span></p>
       <p class="chart-val"><span id="val0"></span></p>
     </div>
-    <div class="chart" id="chart">
+    <div class="chart">
       <canvas id="myChart1"></canvas>
       <p class="chart-date"><span id="desc1"></span></p>
       <p class="chart-val"><span id="val1"></span></p>
     </div>
-    <div class="chart" id="chart">
+    <div class="chart">
       <canvas id="myChart2"></canvas>
       <p class="chart-date"><span id="desc2"></span></p>
       <p class="chart-val"><span id="val2"></span></p>
     </div>
-    <div class="chart" id="chart">
+    <div class="chart">
       <canvas id="myChart3"></canvas>
       <p class="chart-date"><span id="desc3"></span></p>
       <p class="chart-val"><span id="val3"></span></p>
     </div>
-    <div class="chart" id="chart">
+    <div class="chart">
       <canvas id="myChart4"></canvas>
       <p class="chart-date"><span id="desc4"></span></p>
       <p class="chart-val"><span id="val4"></span></p>
     </div>
-    <div class="chart" id="chart">
+    <div class="chart">
       <canvas id="myChart5"></canvas>
       <p class="chart-date"><span id="desc5"></span></p>
       <p class="chart-val"><span id="val5"></span></p>
     </div>
-    <div class="chart" id="chart">
+    <div class="chart">
       <canvas id="myChart6"></canvas>
       <p class="chart-date"><span id="desc6"></span></p>
       <p class="chart-val"><span id="val6"></span></p>
     </div>
   </section>
+
+  <div class="version-toggle">
+    <span class="toggle-label" id="label-light">Light</span>
+    <button type="button" class="toggle-track active" id="theme-toggle" aria-label="Theme wechseln">
+      <span class="toggle-knob"></span>
+    </button>
+    <span class="toggle-label active" id="label-dark">Dark</span>
+  </div>
 </div>
 
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
