@@ -685,6 +685,57 @@ body {
 }
 
 /* ==============================
+   GLASS MARKERS (Messbecher-Markierungen)
+   ============================== */
+#glassMarkers {
+  pointer-events: none;
+}
+
+/* Jeder Marker ist absolut innerhalb von .glass positioniert */
+.glass-marker {
+  position: absolute;
+  left: calc(100% + 5px);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transform: translateY(-50%);
+  white-space: nowrap;
+}
+
+/* Horizontaler Strich */
+.glass-marker-line {
+  width: 10px;
+  height: 1px;
+  background: var(--accent);
+  opacity: 0.4;
+  flex-shrink: 0;
+  transition: opacity 0.2s ease, height 0.2s ease;
+}
+
+/* Uhrzeit-Label */
+.glass-marker-time {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+}
+
+/* Aktuellster (letzter) Eintrag – prominenter */
+.glass-marker-latest .glass-marker-line {
+  opacity: 1;
+  height: 1.5px;
+}
+
+.glass-marker-latest .glass-marker-time {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+[data-theme="light"] .glass-marker-latest .glass-marker-time {
+  color: var(--accent);
+}
+
+/* ==============================
    RESPONSIVE
    ============================== */
 @media (max-width: 360px) {

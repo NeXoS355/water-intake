@@ -346,6 +346,56 @@ function getTodayTotal() {
   return todayTotal;
 }
 
+function updateGlassMarkers() {
+  const container = document.getElementById('glassMarkers');
+  if (!container) return;
+
+  container.innerHTML = '';
+
+  const items = safeParseJSON(safeGetItem('history'), []);
+  const todayString = new Date().toLocaleDateString("de-DE");
+  const todayItems = (items || []).filter(item => item.datum === todayString);
+
+  if (todayItems.length === 0) return;
+
+  todayItems.sort((a, b) => {
+    if (!a.zeit && !b.zeit) return 0;
+    if (!a.zeit) return 1;
+    if (!b.zeit) return -1;
+    return a.zeit.localeCompare(b.zeit);
+  });
+
+  const effectiveGoal = goal > 0 ? goal : 2000;
+  const glassBody = document.querySelector('.glass-body');
+  const glass = document.querySelector('.glass');
+  const glassBodyHeight = glassBody ? glassBody.offsetHeight : 200;
+  const glassPaddingTop = glass ? parseFloat(getComputedStyle(glass).paddingTop) : 10;
+
+  let cumulative = 0;
+
+  todayItems.forEach((item, index) => {
+    cumulative += item.menge;
+    const percentage = Math.min((cumulative / effectiveGoal) * 100, 100);
+    const topPx = glassPaddingTop + (1 - percentage / 100) * glassBodyHeight;
+    const isLatest = index === todayItems.length - 1;
+
+    const marker = document.createElement('div');
+    marker.className = 'glass-marker' + (isLatest ? ' glass-marker-latest' : '');
+    marker.style.top = `${topPx}px`;
+
+    const line = document.createElement('div');
+    line.className = 'glass-marker-line';
+
+    const timeLabel = document.createElement('span');
+    timeLabel.className = 'glass-marker-time';
+    timeLabel.textContent = item.zeit || '';
+
+    marker.appendChild(line);
+    marker.appendChild(timeLabel);
+    container.appendChild(marker);
+  });
+}
+
 // ============================================
 // App initialisieren
 // ============================================
@@ -360,6 +410,7 @@ document.getElementById("DailyGoal").value = goal;
 // Heutigen Total berechnen
 total = getTodayTotal();
 updateWaterDisplay();
+updateGlassMarkers();
 
 // Benachrichtigungs-Button initialisieren
 updateNotificationButton();
@@ -379,6 +430,7 @@ updateDateTimeInputs();
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') {
     updateDateTimeInputs();
+    updateGlassMarkers();
   }
 });
 
@@ -432,7 +484,8 @@ function addWasser(menge) {
   if (!Array.isArray(items)) items = [];
 
   // Neuen Eintrag hinzufügen
-  items.push({ datum: date, menge: validMenge });
+  const timeInput = document.getElementById('uhrzeit')?.value || null;
+  items.push({ datum: date, menge: validMenge, zeit: timeInput });
 
   // Speichern
   if (safeSetItem('history', JSON.stringify(items))) {
@@ -441,6 +494,7 @@ function addWasser(menge) {
       total += validMenge;
       updateWaterDisplay();
       updateTodayChart();
+      updateGlassMarkers();
     }
     showToast(`+${validMenge} ml hinzugefügt`, 'success');
   }
@@ -460,6 +514,7 @@ function changeGoal() {
   if (safeSetItem("DailyGoal", String(goal))) {
     updateWaterDisplay();
     updateTodayChart();
+    updateGlassMarkers();
     showToast(`Tagesziel: ${goal} ml`, 'success');
   }
 }
@@ -593,6 +648,8 @@ function clearStorage() {
 }
 
 // Event-Listener registrieren
+window.addEventListener('resize', updateGlassMarkers);
+
 document.getElementById('goal')?.addEventListener('click', changeGoal);
 document.getElementById('reset')?.addEventListener('click', clearStorage);
 
