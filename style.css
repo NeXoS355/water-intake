@@ -184,10 +184,6 @@ body {
   transform: scale(0.93);
 }
 
-#notifications:hover {
-  color: var(--success);
-  border-color: rgba(34, 197, 94, 0.25);
-}
 
 #reset:hover {
   color: var(--error);
@@ -306,6 +302,36 @@ body {
   color: var(--text-secondary);
   letter-spacing: 0.1em;
   text-transform: uppercase;
+}
+
+/* ==============================
+   STREAK DISPLAY
+   ============================== */
+.streak-display {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 0.15rem;
+}
+
+.streak-display .fa-fire {
+  font-size: 0.65rem;
+  color: #F97316;
+  opacity: 0.75;
+}
+
+#streakCount {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.streak-label {
+  letter-spacing: 0.03em;
 }
 
 /* ==============================
@@ -478,13 +504,9 @@ body {
 }
 
 /* ==============================
-   CHARTS SECTION
+   CALENDAR SECTION
    ============================== */
-.charts-section {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.5rem;
+.calendar-section {
   margin-top: 1.25rem;
   padding: 1rem;
   background: var(--bg-surface);
@@ -492,53 +514,154 @@ body {
   border-radius: var(--radius-lg);
 }
 
-.charts-header {
-  width: 100%;
-  font-size: 0.65rem;
-  font-weight: 500;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  margin-bottom: 0.3rem;
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
 }
 
-.chart {
+.calendar-month-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: center;
+  letter-spacing: 0.03em;
+  text-transform: capitalize;
+}
+
+.cal-nav-btn {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  background: var(--bg-input);
+  border: 1px solid var(--bg-surface-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.cal-nav-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--hover-border);
+  background: var(--bg-surface-solid);
+}
+
+.cal-nav-btn:active {
+  transform: scale(0.92);
+}
+
+.calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 0.35rem;
+}
+
+.calendar-weekdays span {
+  text-align: center;
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 0.2rem 0;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+
+.cal-day {
   display: flex;
   flex-direction: column;
   align-items: center;
-  position: relative;
-  width: calc(25% - 0.5rem);
-  min-width: 75px;
-  max-width: 110px;
+  justify-content: center;
+  aspect-ratio: 1;
+  border-radius: 6px;
+  cursor: default;
+  transition: background 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.chart canvas {
-  width: 100%;
-  height: auto;
+.cal-day--empty {
+  visibility: hidden;
 }
 
-.chart-date {
-  text-align: center;
-  margin: 0 0 0.2em 0;
-  font-size: 0.68rem;
+.cal-day--goal {
+  background: rgba(34, 197, 94, 0.16);
+}
+
+[data-theme="light"] .cal-day--goal {
+  background: rgba(34, 197, 94, 0.13);
+}
+
+.cal-day--partial {
+  background: rgba(245, 158, 11, 0.13);
+}
+
+[data-theme="light"] .cal-day--partial {
+  background: rgba(245, 158, 11, 0.10);
+}
+
+.cal-day--today {
+  outline: 1.5px solid var(--accent);
+  outline-offset: -1.5px;
+}
+
+.cal-day--future {
+  opacity: 0.25;
+}
+
+.cal-day-num {
+  font-size: 0.8rem;
   font-weight: 500;
-  color: var(--text-secondary);
-  order: -1;
-  letter-spacing: 0.01em;
+  color: var(--text-primary);
+  line-height: 1;
+  user-select: none;
 }
 
-.chart-val {
-  position: absolute;
-  top: 55%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  text-align: center;
-  margin: 0;
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
+.cal-day--today .cal-day-num {
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--accent);
 }
+
+.calendar-legend {
+  display: flex;
+  gap: 0.9rem;
+  justify-content: center;
+  margin-top: 0.85rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--bg-surface-border);
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+}
+
+.legend-dot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.legend-dot--goal { background: rgba(34, 197, 94, 0.5); }
+.legend-dot--partial { background: rgba(245, 158, 11, 0.5); }
+.legend-dot--none { background: var(--bg-surface-border); }
 
 /* ==============================
    THEME TOGGLE
@@ -665,6 +788,162 @@ body {
 }
 
 /* ==============================
+   DAY DETAIL MODAL (Bottom Sheet)
+   ============================== */
+.day-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.day-modal--open {
+  pointer-events: auto;
+  visibility: visible;
+}
+
+.day-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0);
+  transition: background 0.3s ease;
+}
+
+.day-modal--open .day-modal-backdrop {
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.day-modal-sheet {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--bg-surface-solid);
+  border: 1px solid var(--bg-surface-border);
+  border-bottom: none;
+  border-radius: 20px 20px 0 0;
+  padding: 0.75rem 1.25rem 2.5rem;
+  transform: translateY(100%);
+  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+  max-width: 460px;
+  margin: 0 auto;
+}
+
+.day-modal--open .day-modal-sheet {
+  transform: translateY(0);
+}
+
+.day-modal-handle {
+  width: 36px;
+  height: 4px;
+  background: var(--bg-surface-border);
+  border-radius: 2px;
+  margin: 0 auto 1.1rem;
+}
+
+.day-modal-date {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 0.85rem;
+}
+
+.day-modal-summary {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+
+.day-modal-amount {
+  font-family: var(--font-mono);
+  font-size: 2.4rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.day-modal-goal-text {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+}
+
+.day-modal-bar-track {
+  height: 4px;
+  background: var(--bg-surface-border);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 1.25rem;
+}
+
+.day-modal-bar-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(to right, var(--water-mid), var(--accent));
+  border-radius: 2px;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1) 0.15s;
+}
+
+.day-modal-entries {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.day-modal-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.55rem 0.75rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--bg-surface-border);
+  border-radius: var(--radius-sm);
+}
+
+.day-modal-entry-time {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.day-modal-entry-amount {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.day-modal-empty {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 1rem 0;
+}
+
+.cal-day--clickable {
+  cursor: pointer;
+}
+
+.cal-day--clickable:hover {
+  background: var(--accent-dim);
+}
+
+.cal-day--goal.cal-day--clickable:hover {
+  background: rgba(34, 197, 94, 0.25);
+}
+
+.cal-day--partial.cal-day--clickable:hover {
+  background: rgba(245, 158, 11, 0.22);
+}
+
+/* ==============================
    SCROLLBAR
    ============================== */
 ::-webkit-scrollbar {
@@ -749,10 +1028,6 @@ body {
   #total { font-size: 2.5rem; }
   .btn-amount { font-size: 1.3rem; }
 
-  .chart {
-    width: calc(33% - 0.4rem);
-    min-width: 65px;
-  }
 }
 
 @media (min-width: 500px) {

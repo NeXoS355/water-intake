@@ -77,145 +77,6 @@ function safeParseJSON(jsonString, defaultValue = null) {
 }
 
 // ============================================
-// Firebase (lazy-loaded, non-blocking)
-// ============================================
-
-let messaging = null;
-
-async function initFirebase() {
-  try {
-    const [{ initializeApp }, { getMessaging, onMessage }] = await Promise.all([
-      import("https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js"),
-      import("https://www.gstatic.com/firebasejs/11.1.0/firebase-messaging.js")
-    ]);
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyBoLabzHIJQzenkaN28wf29HbX3P1CPEqE",
-      authDomain: "water-intake-ded46.firebaseapp.com",
-      projectId: "water-intake-ded46",
-      storageBucket: "water-intake-ded46.firebasestorage.app",
-      messagingSenderId: "703290574513",
-      appId: "1:703290574513:web:5d5c370facae9ba5810490",
-      measurementId: "G-FXZX32HTL6"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    messaging = getMessaging(app);
-
-    onMessage(messaging, (payload) => {
-      console.log('Nachricht empfangen:', payload);
-      if (payload.notification) {
-        showToast(payload.notification.title, 'success');
-      }
-    });
-
-    console.log('Firebase initialisiert');
-  } catch (error) {
-    console.warn('Firebase konnte nicht geladen werden:', error.message);
-  }
-}
-
-// Firebase im Hintergrund laden
-initFirebase();
-
-// Funktion zum Aktivieren der Benachrichtigungen
-async function enableNotifications() {
-  try {
-    if (!messaging) {
-      await initFirebase();
-      if (!messaging) {
-        showToast('Firebase nicht verfügbar', 'error');
-        return;
-      }
-    }
-
-    if (!('Notification' in window)) {
-      showToast('Browser unterstützt keine Benachrichtigungen', 'error');
-      return;
-    }
-
-    if (!('serviceWorker' in navigator)) {
-      showToast('Browser unterstützt keine Service Worker', 'error');
-      return;
-    }
-
-    const permission = await Notification.requestPermission();
-    if (permission !== 'granted') {
-      showToast('Benachrichtigungen nicht erlaubt', 'error');
-      return;
-    }
-
-    const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-    console.log('Service Worker registriert:', registration);
-
-    const { getToken } = await import("https://www.gstatic.com/firebasejs/11.1.0/firebase-messaging.js");
-    const currentToken = await getToken(messaging, {
-      vapidKey: "BMzoBwTBIVGc8By7WNE1H6x_scsGlXhkylwE0IW-akUU_hhR-1IGAXOOXE47ZlxDC8Jok-KZ1A_K-7exZm4PkH8",
-      serviceWorkerRegistration: registration
-    });
-
-    if (currentToken) {
-      console.log('FCM Token:', currentToken);
-      safeSetItem('fcmToken', currentToken);
-      updateNotificationButton();
-      showToast('Benachrichtigungen aktiviert!', 'success');
-    } else {
-      showToast('Kein Token erhalten', 'error');
-    }
-  } catch (error) {
-    console.error('Fehler:', error);
-    showToast(`Fehler: ${error.message}`, 'error');
-  }
-}
-
-// Funktion zum Deaktivieren der Benachrichtigungen
-async function disableNotifications() {
-  try {
-    if (messaging) {
-      const { deleteToken } = await import("https://www.gstatic.com/firebasejs/11.1.0/firebase-messaging.js");
-      await deleteToken(messaging);
-    }
-    localStorage.removeItem('fcmToken');
-
-    // Service Worker deregistrieren
-    const registrations = await navigator.serviceWorker.getRegistrations();
-    for (const reg of registrations) {
-      await reg.unregister();
-    }
-
-    updateNotificationButton();
-    showToast('Benachrichtigungen deaktiviert', 'success');
-  } catch (error) {
-    console.error('Fehler beim Deaktivieren:', error);
-    showToast(`Fehler: ${error.message}`, 'error');
-  }
-}
-
-// Toggle-Funktion für den Button
-function toggleNotifications() {
-  if (safeGetItem('fcmToken')) {
-    disableNotifications();
-  } else {
-    enableNotifications();
-  }
-}
-
-// Button-Text je nach Status aktualisieren
-function updateNotificationButton() {
-  const btn = document.getElementById('notifications');
-  if (!btn) return;
-  if (safeGetItem('fcmToken')) {
-    btn.innerHTML = '<i class="fa-solid fa-bell-slash"></i>';
-    btn.setAttribute('aria-label', 'Benachrichtigungen deaktivieren');
-  } else {
-    btn.innerHTML = '<i class="fa-solid fa-bell"></i>';
-    btn.setAttribute('aria-label', 'Benachrichtigungen aktivieren');
-  }
-}
-
-document.getElementById('notifications')?.addEventListener('click', toggleNotifications);
-
-// ============================================
 // Theme-Management
 // ============================================
 
@@ -223,16 +84,6 @@ const THEME_COLORS = {
   dark: '#0B0F19',
   light: '#F0F4F8'
 };
-
-let chartsReady = false;
-
-function getChartColors() {
-  const theme = document.documentElement.getAttribute('data-theme');
-  if (theme === 'light') {
-    return { filled: '#0891B2', remaining: '#E0E0E0' };
-  }
-  return { filled: '#00D4FF', remaining: 'rgba(255, 255, 255, 0.08)' };
-}
 
 function setTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
@@ -264,10 +115,6 @@ function setTheme(theme) {
     labelDark.classList.toggle('active', theme === 'dark');
   }
 
-  // Charts mit neuen Farben neu aufbauen (nur wenn bereits initialisiert)
-  if (chartsReady) {
-    rebuildAllCharts();
-  }
 }
 
 function toggleTheme() {
@@ -306,8 +153,11 @@ function validateGoal(goalValue) {
 
 let total = 0;
 let goal = 0;
-const chartInstances = {}; // Speichert Chart-Instanzen für Live-Updates
-let todayChartIndex = null; // Index des heutigen Charts
+let calendarViewDate = new Date();
+let calendarReady = false;
+
+const MONTHS_DE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
+                   'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
 
 // ============================================
 // UI-Update Funktionen
@@ -344,6 +194,48 @@ function getTodayTotal() {
   }
 
   return todayTotal;
+}
+
+function getStreak() {
+  const items = safeParseJSON(safeGetItem('history'), []);
+  if (!items || items.length === 0) return 0;
+
+  const dailyTotals = {};
+  for (const item of items) {
+    dailyTotals[item.datum] = (dailyTotals[item.datum] || 0) + item.menge;
+  }
+
+  const effectiveGoal = goal > 0 ? goal : 2000;
+  const today = new Date();
+  const todayStr = today.toLocaleDateString("de-DE");
+
+  // Wenn heute das Ziel noch nicht erreicht, ab gestern zählen
+  let startOffset = (dailyTotals[todayStr] || 0) >= effectiveGoal ? 0 : 1;
+
+  let streak = 0;
+  for (let i = startOffset; i < 365; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const dateStr = d.toLocaleDateString("de-DE");
+    if ((dailyTotals[dateStr] || 0) >= effectiveGoal) {
+      streak++;
+    } else {
+      break;
+    }
+  }
+  return streak;
+}
+
+function updateStreakDisplay() {
+  const el = document.getElementById('streakDisplay');
+  if (!el) return;
+  const streak = getStreak();
+  if (streak > 0) {
+    document.getElementById('streakCount').textContent = streak;
+    el.style.display = 'flex';
+  } else {
+    el.style.display = 'none';
+  }
 }
 
 function updateGlassMarkers() {
@@ -411,9 +303,7 @@ document.getElementById("DailyGoal").value = goal;
 total = getTodayTotal();
 updateWaterDisplay();
 updateGlassMarkers();
-
-// Benachrichtigungs-Button initialisieren
-updateNotificationButton();
+updateStreakDisplay();
 
 // Datum & Uhrzeit mit aktuellen Daten vorbelegen
 function updateDateTimeInputs() {
@@ -431,6 +321,7 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') {
     updateDateTimeInputs();
     updateGlassMarkers();
+    if (calendarReady) renderCalendar();
   }
 });
 
@@ -458,9 +349,9 @@ if (window.location.search) {
   window.history.replaceState({}, document.title, '/');
 }
 
-// Charts erstellen (nach URL-Params, damit neue Einträge enthalten sind)
-rebuildAllCharts();
-chartsReady = true;
+// Kalender erstellen (nach URL-Params, damit neue Einträge enthalten sind)
+renderCalendar();
+calendarReady = true;
 
 // ============================================
 // Funktionen
@@ -495,6 +386,7 @@ function addWasser(menge) {
       updateWaterDisplay();
       updateTodayChart();
       updateGlassMarkers();
+      updateStreakDisplay();
     }
     showToast(`+${validMenge} ml hinzugefügt`, 'success');
   }
@@ -515,125 +407,198 @@ function changeGoal() {
     updateWaterDisplay();
     updateTodayChart();
     updateGlassMarkers();
+    updateStreakDisplay();
     showToast(`Tagesziel: ${goal} ml`, 'success');
   }
 }
 
-function createChart(totalValue, goalValue, id, date) {
-  const canvas = document.getElementById(`myChart${id}`);
-  if (!canvas) return;
+// ============================================
+// Kalender
+// ============================================
 
-  // Existierende Chart-Instanz zerstören, bevor eine neue erstellt wird
-  if (chartInstances[id]) {
-    chartInstances[id].destroy();
-  }
+function renderCalendar() {
+  const grid = document.getElementById('calendarGrid');
+  const label = document.getElementById('calMonthLabel');
+  if (!grid || !label) return;
 
-  // Prüfen ob das der heutige Chart ist
-  const todayString = new Date().toLocaleDateString("de-DE");
-  if (date === todayString) {
-    todayChartIndex = id;
-  }
+  const year = calendarViewDate.getFullYear();
+  const month = calendarViewDate.getMonth();
 
-  const chartColors = getChartColors();
-
-  const data = {
-    labels: ["Getrunken", ""],
-    datasets: [{
-      data: [totalValue, goalValue],
-      backgroundColor: [chartColors.filled, chartColors.remaining],
-      borderColor: [chartColors.filled, chartColors.remaining],
-      borderWidth: 1
-    }]
-  };
-
-  const options = {
-    cutout: '60%',
-    animation: {
-      animateRotate: true,
-      animateScale: true
-    },
-    plugins: {
-      legend: { display: false }
-    }
-  };
-
-  const ctx = canvas.getContext('2d');
-  const chartInstance = new Chart(ctx, { type: 'doughnut', data, options });
-
-  // Chart-Instanz speichern für spätere Updates
-  chartInstances[id] = chartInstance;
-
-  const descElement = document.getElementById(`desc${id}`);
-  const valElement = document.getElementById(`val${id}`);
-
-  if (descElement) descElement.textContent = date;
-  if (valElement) valElement.textContent = totalValue;
-}
-
-function rebuildAllCharts() {
-  // Alle bestehenden Charts zerstören
-  for (const id in chartInstances) {
-    chartInstances[id].destroy();
-    delete chartInstances[id];
-  }
-  todayChartIndex = null;
-
-  // Beschriftungen zurücksetzen
-  for (let i = 0; i < 7; i++) {
-    const descEl = document.getElementById(`desc${i}`);
-    const valEl = document.getElementById(`val${i}`);
-    if (descEl) descEl.textContent = '';
-    if (valEl) valEl.textContent = '';
-  }
+  label.textContent = `${MONTHS_DE[month]} ${year}`;
 
   const items = safeParseJSON(safeGetItem('history'), []);
-  if (!items || items.length === 0) return;
-
-  // Tägliche Summen berechnen
   const dailyTotals = {};
-  for (const item of items) {
+  for (const item of (Array.isArray(items) ? items : [])) {
     dailyTotals[item.datum] = (dailyTotals[item.datum] || 0) + item.menge;
   }
 
-  // Nach Datum sortieren (neueste zuerst)
-  const dates = Object.keys(dailyTotals);
-  dates.sort((a, b) => {
-    const [d1, m1, y1] = a.split('.');
-    const [d2, m2, y2] = b.split('.');
-    return new Date(y2, m2 - 1, d2) - new Date(y1, m1 - 1, d1);
-  });
+  const effectiveGoal = goal > 0 ? goal : 2000;
+  const today = new Date();
+  const todayYear = today.getFullYear();
+  const todayMonth = today.getMonth();
+  const todayDay = today.getDate();
 
-  for (let i = 0; i < Math.min(dates.length, 7); i++) {
-    const date = dates[i];
-    const dayTotal = dailyTotals[date];
-    const remaining = dayTotal < goal ? goal - dayTotal : 0;
-    createChart(dayTotal, remaining, i, date);
+  // Wochentag des 1. (Mo=0 … So=6)
+  const firstWeekday = (new Date(year, month, 1).getDay() + 6) % 7;
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  grid.innerHTML = '';
+
+  // Leere Felder vor dem 1.
+  for (let i = 0; i < firstWeekday; i++) {
+    const empty = document.createElement('div');
+    empty.className = 'cal-day cal-day--empty';
+    empty.setAttribute('aria-hidden', 'true');
+    grid.appendChild(empty);
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = new Date(year, month, d).toLocaleDateString("de-DE");
+    const isToday = (year === todayYear && month === todayMonth && d === todayDay);
+    const isFuture = !isToday && new Date(year, month, d) > new Date(todayYear, todayMonth, todayDay);
+    const dayTotal = dailyTotals[dateStr] || 0;
+
+    let statusClass = '';
+    if (!isFuture && dayTotal > 0) {
+      statusClass = dayTotal >= effectiveGoal ? ' cal-day--goal' : ' cal-day--partial';
+    }
+
+    const cell = document.createElement('div');
+    cell.className = 'cal-day' + statusClass +
+      (isToday ? ' cal-day--today' : '') +
+      (isFuture ? ' cal-day--future' : '');
+    cell.setAttribute('role', 'gridcell');
+    if (!isFuture && dayTotal > 0) cell.title = `${dayTotal} ml`;
+
+    const num = document.createElement('span');
+    num.className = 'cal-day-num';
+    num.textContent = d;
+    cell.appendChild(num);
+
+    if (!isFuture) {
+      cell.classList.add('cal-day--clickable');
+      cell.addEventListener('click', () => showDayDetail(dateStr));
+    }
+
+    grid.appendChild(cell);
   }
 }
 
 function updateTodayChart() {
-  if (todayChartIndex === null) {
-    // Heute ist der erste Eintrag - alle Charts neu aufbauen,
-    // damit die bisherigen Tage korrekt nach rechts rutschen
-    rebuildAllCharts();
-    return;
-  }
-
-  // Existierenden Chart aktualisieren
-  const chart = chartInstances[todayChartIndex];
-  if (chart) {
-    const chartColors = getChartColors();
-    const remaining = total < goal ? goal - total : 0;
-    chart.data.datasets[0].data = [total, remaining];
-    chart.data.datasets[0].backgroundColor = [chartColors.filled, chartColors.remaining];
-    chart.data.datasets[0].borderColor = [chartColors.filled, chartColors.remaining];
-    chart.update('active');
-
-    // Wert-Anzeige aktualisieren
-    const valElement = document.getElementById(`val${todayChartIndex}`);
-    if (valElement) valElement.textContent = total;
-  }
+  renderCalendar();
 }
+
+// Swipe-Navigation für den Kalender (Mobile)
+(function () {
+  let touchStartX = 0;
+  let touchStartY = 0;
+  const section = document.getElementById('calendarSection') ||
+                  document.querySelector('.calendar-section');
+  if (!section) return;
+
+  section.addEventListener('touchstart', e => {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  }, { passive: true });
+
+  section.addEventListener('touchend', e => {
+    const dx = touchStartX - e.changedTouches[0].clientX;
+    const dy = Math.abs(touchStartY - e.changedTouches[0].clientY);
+    if (Math.abs(dx) > 45 && dy < 60) {
+      calendarViewDate.setMonth(calendarViewDate.getMonth() + (dx > 0 ? 1 : -1));
+      renderCalendar();
+    }
+  }, { passive: true });
+}());
+
+// ============================================
+// Tagesdetail-Modal
+// ============================================
+
+function showDayDetail(dateStr) {
+  const modal = document.getElementById('dayModal');
+  if (!modal) return;
+
+  const parts = dateStr.split('.');
+  const date = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+  const dateFormatted = date.toLocaleDateString('de-DE', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+  });
+
+  const allItems = safeParseJSON(safeGetItem('history'), []);
+  const dayItems = (Array.isArray(allItems) ? allItems : []).filter(item => item.datum === dateStr);
+  dayItems.sort((a, b) => {
+    if (!a.zeit && !b.zeit) return 0;
+    if (!a.zeit) return 1;
+    if (!b.zeit) return -1;
+    return a.zeit.localeCompare(b.zeit);
+  });
+  const dayTotal = dayItems.reduce((sum, item) => sum + item.menge, 0);
+  const effectiveGoal = goal > 0 ? goal : 2000;
+  const percent = Math.min((dayTotal / effectiveGoal) * 100, 100);
+
+  document.getElementById('dayModalDate').textContent = dateFormatted;
+  document.getElementById('dayModalAmount').textContent = `${dayTotal} ml`;
+
+  const goalTextEl = document.getElementById('dayModalGoalText');
+  if (dayTotal === 0) {
+    goalTextEl.textContent = 'Kein Eintrag';
+  } else if (dayTotal >= effectiveGoal) {
+    goalTextEl.textContent = 'Ziel erreicht';
+  } else {
+    goalTextEl.textContent = `von ${effectiveGoal} ml Ziel`;
+  }
+
+  // Balken auf 0 zurücksetzen, dann animieren
+  const bar = document.getElementById('dayModalBarFill');
+  bar.style.transition = 'none';
+  bar.style.width = '0%';
+  requestAnimationFrame(() => {
+    bar.style.transition = '';
+    bar.style.width = `${percent}%`;
+  });
+
+  const entriesEl = document.getElementById('dayModalEntries');
+  entriesEl.innerHTML = '';
+  if (dayItems.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'day-modal-empty';
+    empty.textContent = 'Keine Einträge für diesen Tag';
+    entriesEl.appendChild(empty);
+  } else {
+    dayItems.forEach(item => {
+      const row = document.createElement('div');
+      row.className = 'day-modal-entry';
+      const time = document.createElement('span');
+      time.className = 'day-modal-entry-time';
+      time.textContent = item.zeit || '—';
+      const amount = document.createElement('span');
+      amount.className = 'day-modal-entry-amount';
+      amount.textContent = `+${item.menge} ml`;
+      row.appendChild(time);
+      row.appendChild(amount);
+      entriesEl.appendChild(row);
+    });
+  }
+
+  modal.setAttribute('aria-hidden', 'false');
+  modal.classList.add('day-modal--open');
+}
+
+function closeDayModal() {
+  const modal = document.getElementById('dayModal');
+  if (!modal) return;
+  modal.classList.remove('day-modal--open');
+  modal.setAttribute('aria-hidden', 'true');
+}
+
+document.getElementById('dayModal')?.addEventListener('click', e => {
+  if (e.target.classList.contains('day-modal-backdrop')) closeDayModal();
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeDayModal();
+});
 
 function clearStorage() {
   if (confirm('Alle Daten löschen?')) {
@@ -658,4 +623,14 @@ document.querySelectorAll('.water-btn').forEach(btn => {
     const menge = parseInt(btn.dataset.menge, 10);
     addWasser(menge);
   });
+});
+
+document.getElementById('calPrev')?.addEventListener('click', () => {
+  calendarViewDate.setMonth(calendarViewDate.getMonth() - 1);
+  renderCalendar();
+});
+
+document.getElementById('calNext')?.addEventListener('click', () => {
+  calendarViewDate.setMonth(calendarViewDate.getMonth() + 1);
+  renderCalendar();
 });

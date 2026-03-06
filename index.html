@@ -20,7 +20,6 @@
   <header class="header">
     <h1>Mein Tages-Wasserlogbuch <span>Hydration Tracker</span></h1>
     <div class="header-buttons">
-      <button type="button" id="notifications" aria-label="Benachrichtigungen umschalten"><i class="fa-solid fa-bell"></i></button>
       <button type="button" id="reset" aria-label="Alle Daten zurücksetzen"><i class="fa-solid fa-trash-can"></i></button>
     </div>
   </header>
@@ -39,6 +38,11 @@
       <div class="water-total" aria-live="polite" aria-label="Heutige Trinkmenge">
         <span id="total">0</span>
         <span class="unit">ml</span>
+      </div>
+      <div class="streak-display" id="streakDisplay" aria-live="polite">
+        <i class="fa-solid fa-fire" aria-hidden="true"></i>
+        <span id="streakCount">0</span>
+        <span class="streak-label">Tage in Folge</span>
       </div>
     </section>
 
@@ -82,43 +86,26 @@
     </section>
   </main>
 
-  <!-- 7-Day History Charts -->
-  <section class="charts-section" id="canvas" aria-label="Trinkhistorie der letzten 7 Tage">
-    <p class="charts-header">Letzte 7 Tage</p>
-    <div class="chart">
-      <canvas id="myChart0"></canvas>
-      <p class="chart-date"><span id="desc0"></span></p>
-      <p class="chart-val"><span id="val0"></span></p>
+  <!-- Monthly Calendar View -->
+  <section class="calendar-section" id="calendarSection" aria-label="Monatliche Trinkhistorie">
+    <div class="calendar-header">
+      <button type="button" id="calPrev" class="cal-nav-btn" aria-label="Vorheriger Monat">
+        <i class="fa-solid fa-chevron-left"></i>
+      </button>
+      <p class="calendar-month-label" id="calMonthLabel"></p>
+      <button type="button" id="calNext" class="cal-nav-btn" aria-label="Nächster Monat">
+        <i class="fa-solid fa-chevron-right"></i>
+      </button>
     </div>
-    <div class="chart">
-      <canvas id="myChart1"></canvas>
-      <p class="chart-date"><span id="desc1"></span></p>
-      <p class="chart-val"><span id="val1"></span></p>
+    <div class="calendar-weekdays" aria-hidden="true">
+      <span>Mo</span><span>Di</span><span>Mi</span><span>Do</span>
+      <span>Fr</span><span>Sa</span><span>So</span>
     </div>
-    <div class="chart">
-      <canvas id="myChart2"></canvas>
-      <p class="chart-date"><span id="desc2"></span></p>
-      <p class="chart-val"><span id="val2"></span></p>
-    </div>
-    <div class="chart">
-      <canvas id="myChart3"></canvas>
-      <p class="chart-date"><span id="desc3"></span></p>
-      <p class="chart-val"><span id="val3"></span></p>
-    </div>
-    <div class="chart">
-      <canvas id="myChart4"></canvas>
-      <p class="chart-date"><span id="desc4"></span></p>
-      <p class="chart-val"><span id="val4"></span></p>
-    </div>
-    <div class="chart">
-      <canvas id="myChart5"></canvas>
-      <p class="chart-date"><span id="desc5"></span></p>
-      <p class="chart-val"><span id="val5"></span></p>
-    </div>
-    <div class="chart">
-      <canvas id="myChart6"></canvas>
-      <p class="chart-date"><span id="desc6"></span></p>
-      <p class="chart-val"><span id="val6"></span></p>
+    <div class="calendar-grid" id="calendarGrid" role="grid" aria-label="Kalender"></div>
+    <div class="calendar-legend">
+      <span class="legend-item"><span class="legend-dot legend-dot--goal"></span>Ziel erreicht</span>
+      <span class="legend-item"><span class="legend-dot legend-dot--partial"></span>Teilweise</span>
+      <span class="legend-item"><span class="legend-dot legend-dot--none"></span>Kein Eintrag</span>
     </div>
   </section>
 
@@ -131,9 +118,24 @@
   </div>
 </div>
 
+<div id="dayModal" class="day-modal" aria-hidden="true">
+  <div class="day-modal-backdrop"></div>
+  <div class="day-modal-sheet" role="dialog" aria-modal="true" aria-labelledby="dayModalDate">
+    <div class="day-modal-handle" aria-hidden="true"></div>
+    <p class="day-modal-date" id="dayModalDate"></p>
+    <div class="day-modal-summary">
+      <span class="day-modal-amount" id="dayModalAmount"></span>
+      <span class="day-modal-goal-text" id="dayModalGoalText"></span>
+    </div>
+    <div class="day-modal-bar-track" aria-hidden="true">
+      <div class="day-modal-bar-fill" id="dayModalBarFill"></div>
+    </div>
+    <div class="day-modal-entries" id="dayModalEntries"></div>
+  </div>
+</div>
+
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <script src="./logic.js" type="module"></script>
 
 </body>
