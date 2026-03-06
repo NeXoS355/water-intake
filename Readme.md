@@ -8,9 +8,11 @@ A simple Progressive Web App (PWA) for tracking your daily water consumption. No
 
 - Log water intake in preset amounts (200 ml – 500 ml)
 - Set a custom daily goal
-- Water glass visualization with animated wave effect
-- Doughnut charts for the last 7 days
-- Push notification reminders via Firebase Cloud Messaging
+- Water glass visualization with fill animation and per-entry time markers
+- Monthly calendar view with color-coded days (goal reached / partial / none)
+- Tap any past day in the calendar to see a detailed breakdown of all entries
+- Streak counter for consecutive days reaching the goal
+- Dark/Light theme toggle
 - Works offline as a PWA (installable on mobile/desktop)
 - All data stored locally in browser storage – no server, no account needed
 
