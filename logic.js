@@ -153,6 +153,7 @@ function validateGoal(goalValue) {
 
 let total = 0;
 let goal = 0;
+let customMenge = null;
 let calendarViewDate = new Date();
 let calendarReady = false;
 
@@ -232,9 +233,9 @@ function updateStreakDisplay() {
   const streak = getStreak();
   if (streak > 0) {
     document.getElementById('streakCount').textContent = streak;
-    el.style.display = 'flex';
+    el.style.visibility = 'visible';
   } else {
-    el.style.display = 'none';
+    el.style.visibility = 'hidden';
   }
 }
 
@@ -304,6 +305,13 @@ total = getTodayTotal();
 updateWaterDisplay();
 updateGlassMarkers();
 updateStreakDisplay();
+
+// Gespeicherte eigene Menge laden
+const storedCustomMenge = safeGetItem('customMenge');
+if (storedCustomMenge) {
+  customMenge = parseInt(storedCustomMenge, 10) || null;
+}
+updateCustomBtn();
 
 // Datum & Uhrzeit mit aktuellen Daten vorbelegen
 function updateDateTimeInputs() {
@@ -512,6 +520,125 @@ function updateTodayChart() {
 }());
 
 // ============================================
+// Eintrag löschen
+// ============================================
+
+function deleteEntry(datum, menge, zeit) {
+  let items = safeParseJSON(safeGetItem('history'), []);
+  if (!Array.isArray(items)) return;
+
+  const idx = items.findIndex(item =>
+    item.datum === datum && item.menge === menge && item.zeit === zeit
+  );
+  if (idx === -1) return;
+  items.splice(idx, 1);
+
+  if (!safeSetItem('history', JSON.stringify(items))) return;
+
+  const todayString = new Date().toLocaleDateString("de-DE");
+  if (datum === todayString) {
+    total = getTodayTotal();
+    updateWaterDisplay();
+    updateGlassMarkers();
+    updateStreakDisplay();
+  }
+  renderCalendar();
+  showToast(`${menge} ml entfernt`, 'success');
+}
+
+function updateDayModalSummary(dateStr) {
+  const allItems = safeParseJSON(safeGetItem('history'), []);
+  const dayItems = (Array.isArray(allItems) ? allItems : []).filter(i => i.datum === dateStr);
+  const dayTotal = dayItems.reduce((sum, i) => sum + i.menge, 0);
+  const effectiveGoal = goal > 0 ? goal : 2000;
+  const percent = Math.min((dayTotal / effectiveGoal) * 100, 100);
+
+  const amountEl = document.getElementById('dayModalAmount');
+  if (amountEl) amountEl.textContent = `${dayTotal} ml`;
+
+  const goalTextEl = document.getElementById('dayModalGoalText');
+  if (goalTextEl) {
+    if (dayTotal === 0) goalTextEl.textContent = 'Kein Eintrag';
+    else if (dayTotal >= effectiveGoal) goalTextEl.textContent = 'Ziel erreicht';
+    else goalTextEl.textContent = `von ${effectiveGoal} ml Ziel`;
+  }
+
+  const bar = document.getElementById('dayModalBarFill');
+  if (bar) bar.style.width = `${percent}%`;
+}
+
+function addSwipeToDelete(wrapper, row, onDelete) {
+  const THRESHOLD = 80;
+  let startX = 0, startY = 0, dx = 0;
+  let dragging = false, confirmed = false;
+
+  row.addEventListener('touchstart', e => {
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    dx = 0;
+    dragging = false;
+    confirmed = false;
+    row.style.transition = 'none';
+  }, { passive: true });
+
+  row.addEventListener('touchmove', e => {
+    if (confirmed) return;
+    const curX = e.touches[0].clientX;
+    const curY = e.touches[0].clientY;
+    const ddx = curX - startX;
+    const ddy = Math.abs(curY - startY);
+
+    if (!dragging) {
+      if (Math.abs(ddx) < 4 && ddy < 4) return;
+      if (ddy > Math.abs(ddx)) return; // vertikales Scrollen gewinnt
+      dragging = true;
+    }
+    if (ddx > 0) return; // kein Rechts-Swipe
+
+    dx = ddx;
+    const clampedX = Math.max(dx, -120);
+    row.style.transform = `translateX(${clampedX}px)`;
+
+    const bg = wrapper.querySelector('.swipe-delete-bg');
+    if (bg) bg.style.opacity = String(Math.min(Math.abs(clampedX) / THRESHOLD, 1));
+  }, { passive: true });
+
+  row.addEventListener('touchend', () => {
+    if (!dragging) return;
+
+    if (Math.abs(dx) >= THRESHOLD) {
+      confirmed = true;
+      row.style.transition = 'transform 0.22s ease-in';
+      row.style.transform = 'translateX(-110%)';
+
+      const h = wrapper.offsetHeight;
+      wrapper.style.height = h + 'px';
+      wrapper.offsetHeight; // Reflow erzwingen
+      wrapper.style.transition = 'height 0.28s ease 0.16s, opacity 0.22s ease 0.16s, margin-bottom 0.28s ease 0.16s';
+      wrapper.style.height = '0';
+      wrapper.style.opacity = '0';
+      wrapper.style.marginBottom = '0';
+      wrapper.style.overflow = 'hidden';
+
+      setTimeout(() => {
+        wrapper.remove();
+        onDelete();
+      }, 460);
+    } else {
+      // Zurückschnappen mit leichtem Bounce
+      row.style.transition = 'transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)';
+      row.style.transform = 'translateX(0)';
+      const bg = wrapper.querySelector('.swipe-delete-bg');
+      if (bg) {
+        bg.style.transition = 'opacity 0.3s ease';
+        bg.style.opacity = '0';
+      }
+      dragging = false;
+    }
+  }, { passive: true });
+}
+
+// ============================================
 // Tagesdetail-Modal
 // ============================================
 
@@ -567,6 +694,14 @@ function showDayDetail(dateStr) {
     entriesEl.appendChild(empty);
   } else {
     dayItems.forEach(item => {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'day-modal-entry-wrapper';
+
+      const deleteBg = document.createElement('div');
+      deleteBg.className = 'swipe-delete-bg';
+      deleteBg.setAttribute('aria-hidden', 'true');
+      deleteBg.innerHTML = '<i class="fa-solid fa-trash-can"></i><span>Löschen</span>';
+
       const row = document.createElement('div');
       row.className = 'day-modal-entry';
       const time = document.createElement('span');
@@ -577,12 +712,33 @@ function showDayDetail(dateStr) {
       amount.textContent = `+${item.menge} ml`;
       row.appendChild(time);
       row.appendChild(amount);
-      entriesEl.appendChild(row);
+
+      wrapper.appendChild(deleteBg);
+      wrapper.appendChild(row);
+      entriesEl.appendChild(wrapper);
+
+      addSwipeToDelete(wrapper, row, () => {
+        deleteEntry(item.datum, item.menge, item.zeit);
+        updateDayModalSummary(dateStr);
+        if (!entriesEl.querySelector('.day-modal-entry-wrapper')) {
+          const empty = document.createElement('p');
+          empty.className = 'day-modal-empty';
+          empty.textContent = 'Keine Einträge für diesen Tag';
+          entriesEl.appendChild(empty);
+        }
+      });
     });
+
+    const hint = document.createElement('p');
+    hint.className = 'swipe-hint';
+    hint.setAttribute('aria-hidden', 'true');
+    hint.textContent = '← Nach links wischen zum Löschen';
+    entriesEl.appendChild(hint);
   }
 
   modal.setAttribute('aria-hidden', 'false');
   modal.classList.add('day-modal--open');
+  lockBodyScroll();
 }
 
 function closeDayModal() {
@@ -590,6 +746,28 @@ function closeDayModal() {
   if (!modal) return;
   modal.classList.remove('day-modal--open');
   modal.setAttribute('aria-hidden', 'true');
+  unlockBodyScroll();
+}
+
+// Scroll-Lock für iOS Safari und Android
+let _scrollLockY = 0;
+
+function lockBodyScroll() {
+  _scrollLockY = window.scrollY;
+  document.body.style.position = 'fixed';
+  document.body.style.top = `-${_scrollLockY}px`;
+  document.body.style.left = '0';
+  document.body.style.right = '0';
+  document.body.style.overflow = 'hidden';
+}
+
+function unlockBodyScroll() {
+  document.body.style.position = '';
+  document.body.style.top = '';
+  document.body.style.left = '';
+  document.body.style.right = '';
+  document.body.style.overflow = '';
+  window.scrollTo(0, _scrollLockY);
 }
 
 document.getElementById('dayModal')?.addEventListener('click', e => {
@@ -612,17 +790,91 @@ function clearStorage() {
   }
 }
 
+// ============================================
+// Benutzerdefinierte Wassermenge
+// ============================================
+
+function updateCustomBtn() {
+  const btn = document.getElementById('customAmountBtn');
+  const amountEl = document.getElementById('customBtnAmount');
+  const unitEl = document.getElementById('customBtnUnit');
+  const editBtn = document.getElementById('customEditBtn');
+  if (!btn || !amountEl || !unitEl) return;
+
+  if (customMenge !== null) {
+    amountEl.textContent = customMenge;
+    unitEl.textContent = 'ml';
+    btn.classList.remove('water-btn--unset');
+    if (editBtn) editBtn.hidden = false;
+    btn.setAttribute('aria-label', `${customMenge} Milliliter Wasser hinzufügen`);
+  } else {
+    amountEl.innerHTML = '<i class="fa-solid fa-plus" aria-hidden="true"></i>';
+    unitEl.textContent = 'Eigene';
+    btn.classList.add('water-btn--unset');
+    if (editBtn) editBtn.hidden = true;
+    btn.setAttribute('aria-label', 'Eigene Wassermenge hinzufügen');
+  }
+}
+
+let customEditIsNew = false;
+
+function openCustomEdit(isNew = false) {
+  const panel = document.getElementById('customEditPanel');
+  const input = document.getElementById('customAmountInput');
+  if (!panel) return;
+  customEditIsNew = isNew;
+  if (customMenge !== null && input) input.value = customMenge;
+  panel.hidden = false;
+  if (input) { input.focus(); input.select(); }
+}
+
+function closeCustomEdit() {
+  const panel = document.getElementById('customEditPanel');
+  if (panel) panel.hidden = true;
+}
+
+function saveCustomMenge() {
+  const input = document.getElementById('customAmountInput');
+  const menge = validateMenge(input?.value);
+  if (menge === null) {
+    showToast(`Ungültige Menge (${MIN_MENGE}–${MAX_MENGE} ml)`, 'error');
+    return;
+  }
+  customMenge = menge;
+  safeSetItem('customMenge', String(menge));
+  closeCustomEdit();
+  updateCustomBtn();
+  if (customEditIsNew) addWasser(menge);
+}
+
 // Event-Listener registrieren
 window.addEventListener('resize', updateGlassMarkers);
 
 document.getElementById('goal')?.addEventListener('click', changeGoal);
 document.getElementById('reset')?.addEventListener('click', clearStorage);
 
-document.querySelectorAll('.water-btn').forEach(btn => {
+document.querySelectorAll('.water-btn[data-menge]').forEach(btn => {
   btn.addEventListener('click', () => {
     const menge = parseInt(btn.dataset.menge, 10);
     addWasser(menge);
   });
+});
+
+document.getElementById('customAmountBtn')?.addEventListener('click', () => {
+  if (customMenge !== null) {
+    addWasser(customMenge);
+  } else {
+    openCustomEdit(true);
+  }
+});
+
+document.getElementById('customEditBtn')?.addEventListener('click', () => openCustomEdit(false));
+document.getElementById('customSaveBtn')?.addEventListener('click', saveCustomMenge);
+document.getElementById('customCancelBtn')?.addEventListener('click', closeCustomEdit);
+
+document.getElementById('customAmountInput')?.addEventListener('keydown', e => {
+  if (e.key === 'Enter') saveCustomMenge();
+  if (e.key === 'Escape') closeCustomEdit();
 });
 
 document.getElementById('calPrev')?.addEventListener('click', () => {

@@ -24,6 +24,12 @@
     </div>
   </header>
 
+  <div class="streak-display" id="streakDisplay" aria-live="polite">
+    <i class="fa-solid fa-fire" aria-hidden="true"></i>
+    <span id="streakCount">0</span>
+    <span class="streak-label">Tage in Folge</span>
+  </div>
+
   <main class="main-content">
     <!-- Water Glass Visualization -->
     <section class="glass-section">
@@ -38,11 +44,6 @@
       <div class="water-total" aria-live="polite" aria-label="Heutige Trinkmenge">
         <span id="total">0</span>
         <span class="unit">ml</span>
-      </div>
-      <div class="streak-display" id="streakDisplay" aria-live="polite">
-        <i class="fa-solid fa-fire" aria-hidden="true"></i>
-        <span id="streakCount">0</span>
-        <span class="streak-label">Tage in Folge</span>
       </div>
     </section>
 
@@ -64,6 +65,33 @@
         <button type="button" class="water-btn" aria-label="500 Milliliter Wasser hinzufügen" data-menge="500">
           <span class="btn-amount">500</span>
           <span class="btn-unit">ml</span>
+        </button>
+        <div class="custom-amount-wrapper" id="customAmountWrapper">
+          <button type="button" class="water-btn water-btn--custom water-btn--unset" id="customAmountBtn"
+                  aria-label="Eigene Wassermenge hinzufügen">
+            <span class="btn-amount" id="customBtnAmount">
+              <i class="fa-solid fa-plus" aria-hidden="true"></i>
+            </span>
+            <span class="btn-unit" id="customBtnUnit">Eigene</span>
+          </button>
+          <button type="button" class="custom-edit-btn" id="customEditBtn" hidden
+                  aria-label="Eigene Menge bearbeiten">
+            <i class="fa-solid fa-pen" aria-hidden="true"></i>
+          </button>
+        </div>
+      </div>
+      <div class="custom-edit-panel" id="customEditPanel" hidden>
+        <input type="number" id="customAmountInput" class="custom-edit-input"
+               inputmode="numeric" pattern="[0-9]*" min="50" max="2000" step="10"
+               placeholder="z.B. 750" aria-label="Eigene Menge in Milliliter">
+        <span class="custom-edit-unit">ml</span>
+        <button type="button" class="custom-edit-confirm" id="customSaveBtn"
+                aria-label="Menge bestätigen">
+          <i class="fa-solid fa-check"></i>
+        </button>
+        <button type="button" class="custom-edit-cancel" id="customCancelBtn"
+                aria-label="Abbrechen">
+          <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
     </section>
@@ -121,14 +149,16 @@
 <div id="dayModal" class="day-modal" aria-hidden="true">
   <div class="day-modal-backdrop"></div>
   <div class="day-modal-sheet" role="dialog" aria-modal="true" aria-labelledby="dayModalDate">
-    <div class="day-modal-handle" aria-hidden="true"></div>
-    <p class="day-modal-date" id="dayModalDate"></p>
-    <div class="day-modal-summary">
-      <span class="day-modal-amount" id="dayModalAmount"></span>
-      <span class="day-modal-goal-text" id="dayModalGoalText"></span>
-    </div>
-    <div class="day-modal-bar-track" aria-hidden="true">
-      <div class="day-modal-bar-fill" id="dayModalBarFill"></div>
+    <div class="day-modal-header">
+      <div class="day-modal-handle" aria-hidden="true"></div>
+      <p class="day-modal-date" id="dayModalDate"></p>
+      <div class="day-modal-summary">
+        <span class="day-modal-amount" id="dayModalAmount"></span>
+        <span class="day-modal-goal-text" id="dayModalGoalText"></span>
+      </div>
+      <div class="day-modal-bar-track" aria-hidden="true">
+        <div class="day-modal-bar-fill" id="dayModalBarFill"></div>
+      </div>
     </div>
     <div class="day-modal-entries" id="dayModalEntries"></div>
   </div>
