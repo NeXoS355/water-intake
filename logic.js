@@ -7,6 +7,12 @@ if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
 // Toast-Nachrichten
 // ============================================
 
+function hapticFeedback(duration = 50) {
+  if ('vibrate' in navigator) {
+    navigator.vibrate(duration);
+  }
+}
+
 function showToast(message, type = 'success') {
   const toast = document.getElementById('toast');
   if (!toast) return;
@@ -154,6 +160,19 @@ function validateGoal(goalValue) {
 let total = 0;
 let goal = 0;
 let customMenge = null;
+let stepperValue = 250;
+const STEPPER_STEP = 25;
+const SLIDER_VALUES = [50, 100, 150, 200, 250, 300, 330, 350, 400, 450, 500, 550, 600, 650, 700, 750, 800, 850, 900, 950, 1000];
+
+function sliderIndexForValue(val) {
+  let closest = 0;
+  let minDiff = Math.abs(SLIDER_VALUES[0] - val);
+  for (let i = 1; i < SLIDER_VALUES.length; i++) {
+    const diff = Math.abs(SLIDER_VALUES[i] - val);
+    if (diff < minDiff) { minDiff = diff; closest = i; }
+  }
+  return closest;
+}
 let calendarViewDate = new Date();
 let calendarReady = false;
 
@@ -816,16 +835,19 @@ function updateCustomBtn() {
   }
 }
 
-let customEditIsNew = false;
+function updateStepperDisplay() {
+  const el = document.getElementById('stepperValue');
+  if (el) el.textContent = stepperValue;
+  const slider = document.getElementById('amountSlider');
+  if (slider) slider.value = sliderIndexForValue(stepperValue);
+}
 
-function openCustomEdit(isNew = false) {
+function openCustomEdit() {
   const panel = document.getElementById('customEditPanel');
-  const input = document.getElementById('customAmountInput');
   if (!panel) return;
-  customEditIsNew = isNew;
-  if (customMenge !== null && input) input.value = customMenge;
+  stepperValue = customMenge !== null ? customMenge : 250;
+  updateStepperDisplay();
   panel.hidden = false;
-  if (input) { input.focus(); input.select(); }
 }
 
 function closeCustomEdit() {
@@ -834,8 +856,7 @@ function closeCustomEdit() {
 }
 
 function saveCustomMenge() {
-  const input = document.getElementById('customAmountInput');
-  const menge = validateMenge(input?.value);
+  const menge = validateMenge(stepperValue);
   if (menge === null) {
     showToast(`Ungültige Menge (${MIN_MENGE}–${MAX_MENGE} ml)`, 'error');
     return;
@@ -844,7 +865,6 @@ function saveCustomMenge() {
   safeSetItem('customMenge', String(menge));
   closeCustomEdit();
   updateCustomBtn();
-  if (customEditIsNew) addWasser(menge);
 }
 
 // Event-Listener registrieren
@@ -855,6 +875,7 @@ document.getElementById('reset')?.addEventListener('click', clearStorage);
 
 document.querySelectorAll('.water-btn[data-menge]').forEach(btn => {
   btn.addEventListener('click', () => {
+    hapticFeedback();
     const menge = parseInt(btn.dataset.menge, 10);
     addWasser(menge);
   });
@@ -862,19 +883,40 @@ document.querySelectorAll('.water-btn[data-menge]').forEach(btn => {
 
 document.getElementById('customAmountBtn')?.addEventListener('click', () => {
   if (customMenge !== null) {
+    hapticFeedback();
     addWasser(customMenge);
   } else {
-    openCustomEdit(true);
+    openCustomEdit();
   }
 });
 
-document.getElementById('customEditBtn')?.addEventListener('click', () => openCustomEdit(false));
+document.getElementById('customEditBtn')?.addEventListener('click', () => openCustomEdit());
 document.getElementById('customSaveBtn')?.addEventListener('click', saveCustomMenge);
 document.getElementById('customCancelBtn')?.addEventListener('click', closeCustomEdit);
 
-document.getElementById('customAmountInput')?.addEventListener('keydown', e => {
-  if (e.key === 'Enter') saveCustomMenge();
-  if (e.key === 'Escape') closeCustomEdit();
+document.getElementById('amountSlider')?.addEventListener('input', e => {
+  stepperValue = SLIDER_VALUES[parseInt(e.target.value, 10)];
+  const el = document.getElementById('stepperValue');
+  if (el) el.textContent = stepperValue;
+  hapticFeedback(15);
+});
+
+document.querySelectorAll('.stepper-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    stepperValue = parseInt(chip.dataset.amount, 10);
+    updateStepperDisplay();
+    hapticFeedback(30);
+  });
+});
+
+document.getElementById('pastToggle')?.addEventListener('click', () => {
+  const collapsible = document.getElementById('pastCollapsible');
+  const btn = document.getElementById('pastToggle');
+  if (!collapsible) return;
+  const isExpanded = btn.getAttribute('aria-expanded') === 'true';
+  btn.setAttribute('aria-expanded', String(!isExpanded));
+  collapsible.hidden = isExpanded;
+  btn.classList.toggle('past-toggle--open', !isExpanded);
 });
 
 document.getElementById('calPrev')?.addEventListener('click', () => {

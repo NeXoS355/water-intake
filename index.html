@@ -81,18 +81,25 @@
         </div>
       </div>
       <div class="custom-edit-panel" id="customEditPanel" hidden>
-        <input type="number" id="customAmountInput" class="custom-edit-input"
-               inputmode="numeric" pattern="[0-9]*" min="50" max="2000" step="10"
-               placeholder="z.B. 750" aria-label="Eigene Menge in Milliliter">
-        <span class="custom-edit-unit">ml</span>
-        <button type="button" class="custom-edit-confirm" id="customSaveBtn"
-                aria-label="Menge bestätigen">
-          <i class="fa-solid fa-check"></i>
-        </button>
-        <button type="button" class="custom-edit-cancel" id="customCancelBtn"
-                aria-label="Abbrechen">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
+        <div class="slider-value-display">
+          <span class="stepper-value" id="stepperValue">250</span>
+          <span class="stepper-unit">ml</span>
+        </div>
+        <input type="range" id="amountSlider" class="amount-slider"
+               min="0" max="20" step="1" value="4"
+               list="sliderTicks"
+               aria-label="Menge in Milliliter">
+        <datalist id="sliderTicks">
+          <option value="6"></option>
+        </datalist>
+        <div class="stepper-actions">
+          <button type="button" class="stepper-confirm" id="customSaveBtn">
+            <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Speichern
+          </button>
+          <button type="button" class="stepper-cancel" id="customCancelBtn" aria-label="Abbrechen">
+            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+          </button>
+        </div>
       </div>
     </section>
 
@@ -100,11 +107,18 @@
     <section class="settings-card">
       <p class="settings-title">Einstellungen</p>
       <div class="input-section">
-        <div class="input-row">
-          <label><span class="label-text">Datum:</span> <input type="date" id="datum" value=""></label>
-        </div>
-        <div class="input-row">
-          <label><span class="label-text">Uhrzeit:</span> <input type="time" id="uhrzeit" value=""></label>
+        <button type="button" class="past-toggle" id="pastToggle" aria-expanded="false" aria-controls="pastCollapsible">
+          <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i>
+          <span>Vergangenen Zeitpunkt eintragen</span>
+          <i class="fa-solid fa-chevron-down past-toggle-arrow" aria-hidden="true"></i>
+        </button>
+        <div class="past-collapsible" id="pastCollapsible" hidden>
+          <div class="input-row">
+            <label><span class="label-text">Datum:</span> <input type="date" id="datum" value=""></label>
+          </div>
+          <div class="input-row">
+            <label><span class="label-text">Uhrzeit:</span> <input type="time" id="uhrzeit" value=""></label>
+          </div>
         </div>
         <div class="input-row">
           <label><span class="label-text">Tagesziel [ml]:</span> <input type="number" id="DailyGoal" inputmode="numeric" pattern="[0-9]*" min="500" max="10000" step="1"></label>
