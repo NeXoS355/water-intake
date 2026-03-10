@@ -919,6 +919,95 @@ document.getElementById('pastToggle')?.addEventListener('click', () => {
   btn.classList.toggle('past-toggle--open', !isExpanded);
 });
 
+// ============================================
+// Datensicherung (Web Share API)
+// ============================================
+
+function updateBackupHint() {
+  const hint = document.getElementById('backupHint');
+  if (!hint) return;
+  const ts = safeGetItem('lastBackup');
+  if (ts) {
+    hint.textContent = `Zuletzt gesichert: ${ts}`;
+    hint.hidden = false;
+  } else {
+    hint.hidden = true;
+  }
+}
+
+function saveBackupTimestamp() {
+  const now = new Date();
+  const formatted = now.toLocaleDateString('de-DE') + ', ' +
+    now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + ' Uhr';
+  safeSetItem('lastBackup', formatted);
+  updateBackupHint();
+}
+
+function exportData() {
+  const history = safeParseJSON(safeGetItem('history'), []);
+  const backup = {
+    version: 1,
+    exportDate: new Date().toLocaleDateString('de-DE'),
+    history: Array.isArray(history) ? history : [],
+    DailyGoal: safeGetItem('DailyGoal') ? parseInt(safeGetItem('DailyGoal'), 10) : null,
+    customMenge: safeGetItem('customMenge') ? parseInt(safeGetItem('customMenge'), 10) : null
+  };
+
+  const json = JSON.stringify(backup, null, 2);
+  const filename = `wasserlogbuch-${new Date().toISOString().slice(0, 10)}.json`;
+  const file = new File([json], filename, { type: 'application/json' });
+
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    navigator.share({ files: [file], title: 'Wasserlogbuch Backup' })
+      .then(() => saveBackupTimestamp())
+      .catch(err => { if (err.name !== 'AbortError') showToast('Teilen fehlgeschlagen', 'error'); });
+  } else if (navigator.share) {
+    navigator.share({ title: filename, text: json })
+      .then(() => saveBackupTimestamp())
+      .catch(err => { if (err.name !== 'AbortError') showToast('Teilen fehlgeschlagen', 'error'); });
+  } else {
+    navigator.clipboard.writeText(json)
+      .then(() => { saveBackupTimestamp(); showToast('Backup in Zwischenablage kopiert', 'success'); })
+      .catch(() => showToast('Teilen wird nicht unterstützt', 'error'));
+  }
+}
+
+function importData(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const backup = JSON.parse(e.target.result);
+      if (!backup.history || !Array.isArray(backup.history)) {
+        showToast('Ungültige Backup-Datei', 'error');
+        return;
+      }
+      if (!confirm(`${backup.history.length} Einträge wiederherstellen?\nBestehende Daten werden überschrieben.`)) return;
+      safeSetItem('history', JSON.stringify(backup.history));
+      if (backup.DailyGoal) safeSetItem('DailyGoal', String(backup.DailyGoal));
+      if (backup.customMenge) safeSetItem('customMenge', String(backup.customMenge));
+      showToast('Daten wiederhergestellt', 'success');
+      setTimeout(() => window.location.reload(), 1000);
+    } catch {
+      showToast('Backup-Datei konnte nicht gelesen werden', 'error');
+    }
+  };
+  reader.readAsText(file);
+}
+
+updateBackupHint();
+
+document.getElementById('exportBtn')?.addEventListener('click', exportData);
+
+document.getElementById('importBtn')?.addEventListener('click', () => {
+  document.getElementById('importFile')?.click();
+});
+
+document.getElementById('importFile')?.addEventListener('change', e => {
+  const file = e.target.files?.[0];
+  if (file) importData(file);
+  e.target.value = '';
+});
+
 document.getElementById('calPrev')?.addEventListener('click', () => {
   calendarViewDate.setMonth(calendarViewDate.getMonth() - 1);
   renderCalendar();
