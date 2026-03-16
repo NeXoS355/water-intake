@@ -984,6 +984,25 @@ body {
   padding: 0.5rem;
 }
 
+.lang-toggle {
+  background: none;
+  border: 1.5px solid var(--text-muted);
+  color: var(--text-muted);
+  border-radius: 12px;
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+  margin-right: 0.4rem;
+}
+
+.lang-toggle:hover {
+  color: var(--text-primary);
+  border-color: var(--text-primary);
+}
+
 .toggle-label {
   font-size: 0.75rem;
   color: var(--text-muted);

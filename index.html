@@ -20,20 +20,20 @@
   <header class="header">
     <h1>Mein Tages-Wasserlogbuch <span>Hydration Tracker</span></h1>
     <div class="header-buttons">
-      <button type="button" id="reset" aria-label="Alle Daten zurücksetzen"><i class="fa-solid fa-trash-can"></i></button>
+      <button type="button" id="reset" aria-label="Alle Daten zurücksetzen" data-i18n-aria="reset_aria"><i class="fa-solid fa-trash-can"></i></button>
     </div>
   </header>
 
   <div class="streak-display" id="streakDisplay" aria-live="polite">
     <i class="fa-solid fa-fire" aria-hidden="true"></i>
     <span id="streakCount">0</span>
-    <span class="streak-label">Tage in Folge</span>
+    <span class="streak-label" data-i18n="streak_label">Tage in Folge</span>
   </div>
 
   <main class="main-content">
     <!-- Water Glass Visualization -->
     <section class="glass-section">
-      <div class="glass" role="img" aria-label="Wasserglas-Füllstandsanzeige">
+      <div class="glass" role="img" aria-label="Wasserglas-Füllstandsanzeige" data-i18n-aria="glass_aria">
         <div class="glass-body">
           <div class="water-fill" id="waterFill">
             <div class="wave"></div>
@@ -41,7 +41,7 @@
         </div>
         <div id="glassMarkers" aria-hidden="true"></div>
       </div>
-      <div class="water-total" aria-live="polite" aria-label="Heutige Trinkmenge">
+      <div class="water-total" aria-live="polite" aria-label="Heutige Trinkmenge" data-i18n-aria="total_aria">
         <span id="total">0</span>
         <span class="unit">ml</span>
       </div>
@@ -75,7 +75,7 @@
             <span class="btn-unit" id="customBtnUnit">Eigene</span>
           </button>
           <button type="button" class="custom-edit-btn" id="customEditBtn" hidden
-                  aria-label="Eigene Menge bearbeiten">
+                  aria-label="Eigene Menge bearbeiten" data-i18n-aria="custom_edit_aria">
             <i class="fa-solid fa-pen" aria-hidden="true"></i>
           </button>
         </div>
@@ -88,15 +88,15 @@
         <input type="range" id="amountSlider" class="amount-slider"
                min="0" max="20" step="1" value="4"
                list="sliderTicks"
-               aria-label="Menge in Milliliter">
+               aria-label="Menge in Milliliter" data-i18n-aria="slider_aria">
         <datalist id="sliderTicks">
           <option value="6"></option>
         </datalist>
         <div class="stepper-actions">
           <button type="button" class="stepper-confirm" id="customSaveBtn">
-            <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Speichern
+            <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> <span data-i18n="save">Speichern</span>
           </button>
-          <button type="button" class="stepper-cancel" id="customCancelBtn" aria-label="Abbrechen">
+          <button type="button" class="stepper-cancel" id="customCancelBtn" aria-label="Abbrechen" data-i18n-aria="cancel_aria">
             <i class="fa-solid fa-xmark" aria-hidden="true"></i>
           </button>
         </div>
@@ -105,33 +105,33 @@
 
     <!-- Settings -->
     <section class="settings-card">
-      <p class="settings-title">Einstellungen</p>
+      <p class="settings-title" data-i18n="settings_title">Einstellungen</p>
       <div class="input-section">
         <button type="button" class="past-toggle" id="pastToggle" aria-expanded="false" aria-controls="pastCollapsible">
           <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i>
-          <span>Vergangenen Zeitpunkt eintragen</span>
+          <span data-i18n="past_toggle">Vergangenen Zeitpunkt eintragen</span>
           <i class="fa-solid fa-chevron-down past-toggle-arrow" aria-hidden="true"></i>
         </button>
         <div class="past-collapsible" id="pastCollapsible" hidden>
           <div class="input-row">
-            <label><span class="label-text">Datum:</span> <input type="date" id="datum" value=""></label>
+            <label><span class="label-text" data-i18n="label_date">Datum:</span> <input type="date" id="datum" value=""></label>
           </div>
           <div class="input-row">
-            <label><span class="label-text">Uhrzeit:</span> <input type="time" id="uhrzeit" value=""></label>
+            <label><span class="label-text" data-i18n="label_time">Uhrzeit:</span> <input type="time" id="uhrzeit" value=""></label>
           </div>
         </div>
         <div class="input-row">
-          <label><span class="label-text">Tagesziel [ml]:</span> <input type="number" id="DailyGoal" inputmode="numeric" pattern="[0-9]*" min="500" max="10000" step="1"></label>
-          <button type="button" id="goal" aria-label="Tagesziel speichern"><i class="fa-solid fa-floppy-disk"></i></button>
+          <label><span class="label-text" data-i18n="label_goal">Tagesziel [ml]:</span> <input type="number" id="DailyGoal" inputmode="numeric" pattern="[0-9]*" min="500" max="10000" step="1"></label>
+          <button type="button" id="goal" aria-label="Tagesziel speichern" data-i18n-aria="goal_save_aria"><i class="fa-solid fa-floppy-disk"></i></button>
         </div>
         <div class="backup-row">
           <button type="button" class="backup-btn" id="exportBtn">
             <i class="fa-solid fa-share-from-square" aria-hidden="true"></i>
-            <span>Daten sichern</span>
+            <span data-i18n="export_btn">Daten sichern</span>
           </button>
           <button type="button" class="backup-btn" id="importBtn">
             <i class="fa-solid fa-file-import" aria-hidden="true"></i>
-            <span>Wiederherstellen</span>
+            <span data-i18n="import_btn">Wiederherstellen</span>
           </button>
           <input type="file" id="importFile" accept=".json" hidden>
         </div>
@@ -141,13 +141,13 @@
   </main>
 
   <!-- Monthly Calendar View -->
-  <section class="calendar-section" id="calendarSection" aria-label="Monatliche Trinkhistorie">
+  <section class="calendar-section" id="calendarSection" aria-label="Monatliche Trinkhistorie" data-i18n-aria="calendar_aria">
     <div class="calendar-header">
-      <button type="button" id="calPrev" class="cal-nav-btn" aria-label="Vorheriger Monat">
+      <button type="button" id="calPrev" class="cal-nav-btn" aria-label="Vorheriger Monat" data-i18n-aria="cal_prev_aria">
         <i class="fa-solid fa-chevron-left"></i>
       </button>
       <p class="calendar-month-label" id="calMonthLabel"></p>
-      <button type="button" id="calNext" class="cal-nav-btn" aria-label="Nächster Monat">
+      <button type="button" id="calNext" class="cal-nav-btn" aria-label="Nächster Monat" data-i18n-aria="cal_next_aria">
         <i class="fa-solid fa-chevron-right"></i>
       </button>
     </div>
@@ -157,15 +157,16 @@
     </div>
     <div class="calendar-grid" id="calendarGrid" role="grid" aria-label="Kalender"></div>
     <div class="calendar-legend">
-      <span class="legend-item"><span class="legend-dot legend-dot--goal"></span>Ziel erreicht</span>
-      <span class="legend-item"><span class="legend-dot legend-dot--partial"></span>Teilweise</span>
-      <span class="legend-item"><span class="legend-dot legend-dot--none"></span>Kein Eintrag</span>
+      <span class="legend-item"><span class="legend-dot legend-dot--goal"></span><span data-i18n="legend_goal">Ziel erreicht</span></span>
+      <span class="legend-item"><span class="legend-dot legend-dot--partial"></span><span data-i18n="legend_partial">Teilweise</span></span>
+      <span class="legend-item"><span class="legend-dot legend-dot--none"></span><span data-i18n="legend_none">Kein Eintrag</span></span>
     </div>
   </section>
 
   <div class="version-toggle">
+    <button type="button" id="lang-toggle" class="lang-toggle" aria-label="Sprache wechseln" data-i18n-aria="lang_toggle_aria">EN</button>
     <span class="toggle-label" id="label-light">Light</span>
-    <button type="button" class="toggle-track active" id="theme-toggle" aria-label="Theme wechseln">
+    <button type="button" class="toggle-track active" id="theme-toggle" aria-label="Theme wechseln" data-i18n-aria="theme_aria">
       <span class="toggle-knob"></span>
     </button>
     <span class="toggle-label active" id="label-dark">Dark</span>

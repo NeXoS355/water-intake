@@ -3,6 +3,10 @@ if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
   location.replace(`https:${window.location.href.substring(window.location.protocol.length)}`);
 }
 
+import { translations } from './translations.js';
+
+const LOCALE_MAP = { de: 'de-DE', en: 'en-US' };
+
 // ============================================
 // Toast-Nachrichten
 // ============================================
@@ -57,7 +61,7 @@ function safeGetItem(key, defaultValue = null) {
 function safeSetItem(key, value) {
   try {
     if (!isLocalStorageAvailable()) {
-      showToast('Speichern nicht möglich', 'error');
+      showToast(t('toast_save_error'), 'error');
       return false;
     }
     localStorage.setItem(key, value);
@@ -65,9 +69,9 @@ function safeSetItem(key, value) {
   } catch (error) {
     console.error(`Fehler beim Speichern von "${key}":`, error);
     if (error.name === 'QuotaExceededError') {
-      showToast('Speicher voll', 'error');
+      showToast(t('toast_storage_full'), 'error');
     } else {
-      showToast('Fehler beim Speichern', 'error');
+      showToast(t('toast_save_fail'), 'error');
     }
     return false;
   }
@@ -80,6 +84,62 @@ function safeParseJSON(jsonString, defaultValue = null) {
     console.error('Fehler beim Parsen von JSON:', error);
     return defaultValue;
   }
+}
+
+// ============================================
+// Übersetzungen
+// ============================================
+
+let currentLang = safeGetItem('lang', 'de');
+
+function t(key, vars = {}) {
+  const str = translations[currentLang]?.[key] ?? translations.de[key] ?? key;
+  return Object.entries(vars).reduce((s, [k, v]) => s.replace(`{${k}}`, v), str);
+}
+
+function applyTranslations() {
+  document.documentElement.lang = currentLang;
+  document.title = t('page_title');
+
+  const metaDesc = document.querySelector('meta[name="description"]');
+  if (metaDesc) metaDesc.setAttribute('content', t('page_description'));
+
+  // h1: nur den Textknoten (vor dem Subtitle-Span) aktualisieren
+  const h1 = document.querySelector('.header h1');
+  if (h1) {
+    const textNode = [...h1.childNodes].find(n => n.nodeType === Node.TEXT_NODE);
+    if (textNode) textNode.textContent = t('page_title') + ' ';
+  }
+
+  // Texte via data-i18n
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    el.textContent = t(el.dataset.i18n);
+  });
+
+  // Aria-Labels via data-i18n-aria
+  document.querySelectorAll('[data-i18n-aria]').forEach(el => {
+    el.setAttribute('aria-label', t(el.dataset.i18nAria));
+  });
+
+  // Wasser-Buttons (aria-label mit Menge)
+  document.querySelectorAll('.water-btn[data-menge]').forEach(btn => {
+    btn.setAttribute('aria-label', t('water_btn_aria', { amount: btn.dataset.menge }));
+  });
+
+  // Wochentage im Kalender
+  const wdSpans = document.querySelectorAll('.calendar-weekdays span');
+  const weekdays = translations[currentLang]?.weekdays ?? translations.de.weekdays;
+  wdSpans.forEach((span, i) => { span.textContent = weekdays[i]; });
+
+  // Sprach-Toggle-Button: zeigt die jeweils andere Sprache
+  const langBtn = document.getElementById('lang-toggle');
+  if (langBtn) langBtn.textContent = currentLang === 'de' ? 'EN' : 'DE';
+
+  // Elemente, die von JS-Funktionen verwaltet werden
+  updateCustomBtn();
+  updateBackupHint();
+
+  if (calendarReady) renderCalendar();
 }
 
 // ============================================
@@ -134,6 +194,14 @@ setTheme(savedTheme);
 
 document.getElementById('theme-toggle')?.addEventListener('click', toggleTheme);
 
+// Sprach-Toggle
+applyTranslations();
+document.getElementById('lang-toggle')?.addEventListener('click', () => {
+  currentLang = currentLang === 'de' ? 'en' : 'de';
+  safeSetItem('lang', currentLang);
+  applyTranslations();
+});
+
 // ============================================
 // Validierung
 // ============================================
@@ -175,9 +243,6 @@ function sliderIndexForValue(val) {
 }
 let calendarViewDate = new Date();
 let calendarReady = false;
-
-const MONTHS_DE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
-                   'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
 
 // ============================================
 // UI-Update Funktionen
@@ -387,7 +452,7 @@ calendarReady = true;
 function addWasser(menge) {
   const validMenge = validateMenge(menge);
   if (validMenge === null) {
-    showToast(`Ungültige Menge (${MIN_MENGE}-${MAX_MENGE} ml)`, 'error');
+    showToast(t('toast_invalid_amount', { min: MIN_MENGE, max: MAX_MENGE }), 'error');
     return;
   }
 
@@ -415,7 +480,7 @@ function addWasser(menge) {
       updateGlassMarkers();
       updateStreakDisplay();
     }
-    showToast(`+${validMenge} ml hinzugefügt`, 'success');
+    showToast(t('toast_added', { amount: validMenge }), 'success');
   }
 }
 
@@ -424,7 +489,7 @@ function changeGoal() {
   const validGoal = validateGoal(inputGoal);
 
   if (validGoal === null) {
-    showToast(`Ungültiges Ziel (${MIN_GOAL}-${MAX_GOAL} ml)`, 'error');
+    showToast(t('toast_invalid_goal', { min: MIN_GOAL, max: MAX_GOAL }), 'error');
     document.getElementById("DailyGoal").value = goal;
     return;
   }
@@ -435,7 +500,7 @@ function changeGoal() {
     updateTodayChart();
     updateGlassMarkers();
     updateStreakDisplay();
-    showToast(`Tagesziel: ${goal} ml`, 'success');
+    showToast(t('toast_goal_set', { goal }), 'success');
   }
 }
 
@@ -451,7 +516,8 @@ function renderCalendar() {
   const year = calendarViewDate.getFullYear();
   const month = calendarViewDate.getMonth();
 
-  label.textContent = `${MONTHS_DE[month]} ${year}`;
+  const months = translations[currentLang]?.months ?? translations.de.months;
+  label.textContent = `${months[month]} ${year}`;
 
   const items = safeParseJSON(safeGetItem('history'), []);
   const dailyTotals = {};
@@ -512,7 +578,7 @@ function renderCalendar() {
 }
 
 function updateTodayChart() {
-  renderCalendar();
+  if (calendarReady) renderCalendar();
 }
 
 // Swipe-Navigation für den Kalender (Mobile)
@@ -562,7 +628,13 @@ function deleteEntry(datum, menge, zeit) {
     updateStreakDisplay();
   }
   renderCalendar();
-  showToast(`${menge} ml entfernt`, 'success');
+  showToast(t('toast_removed', { amount: menge }), 'success');
+}
+
+function goalText(dayTotal, effectiveGoal) {
+  if (dayTotal === 0) return t('modal_no_entry');
+  if (dayTotal >= effectiveGoal) return t('modal_goal_reached');
+  return t('modal_of_goal', { goal: effectiveGoal });
 }
 
 function updateDayModalSummary(dateStr) {
@@ -576,11 +648,7 @@ function updateDayModalSummary(dateStr) {
   if (amountEl) amountEl.textContent = `${dayTotal} ml`;
 
   const goalTextEl = document.getElementById('dayModalGoalText');
-  if (goalTextEl) {
-    if (dayTotal === 0) goalTextEl.textContent = 'Kein Eintrag';
-    else if (dayTotal >= effectiveGoal) goalTextEl.textContent = 'Ziel erreicht';
-    else goalTextEl.textContent = `von ${effectiveGoal} ml Ziel`;
-  }
+  if (goalTextEl) goalTextEl.textContent = goalText(dayTotal, effectiveGoal);
 
   const bar = document.getElementById('dayModalBarFill');
   if (bar) bar.style.width = `${percent}%`;
@@ -667,7 +735,7 @@ function showDayDetail(dateStr) {
 
   const parts = dateStr.split('.');
   const date = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
-  const dateFormatted = date.toLocaleDateString('de-DE', {
+  const dateFormatted = date.toLocaleDateString(LOCALE_MAP[currentLang] ?? 'en-US', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
   });
 
@@ -687,13 +755,7 @@ function showDayDetail(dateStr) {
   document.getElementById('dayModalAmount').textContent = `${dayTotal} ml`;
 
   const goalTextEl = document.getElementById('dayModalGoalText');
-  if (dayTotal === 0) {
-    goalTextEl.textContent = 'Kein Eintrag';
-  } else if (dayTotal >= effectiveGoal) {
-    goalTextEl.textContent = 'Ziel erreicht';
-  } else {
-    goalTextEl.textContent = `von ${effectiveGoal} ml Ziel`;
-  }
+  goalTextEl.textContent = goalText(dayTotal, effectiveGoal);
 
   // Balken auf 0 zurücksetzen, dann animieren
   const bar = document.getElementById('dayModalBarFill');
@@ -705,11 +767,11 @@ function showDayDetail(dateStr) {
   });
 
   const entriesEl = document.getElementById('dayModalEntries');
-  entriesEl.innerHTML = '';
+  entriesEl.textContent = '';
   if (dayItems.length === 0) {
     const empty = document.createElement('p');
     empty.className = 'day-modal-empty';
-    empty.textContent = 'Keine Einträge für diesen Tag';
+    empty.textContent = t('modal_no_entries');
     entriesEl.appendChild(empty);
   } else {
     dayItems.forEach(item => {
@@ -719,7 +781,12 @@ function showDayDetail(dateStr) {
       const deleteBg = document.createElement('div');
       deleteBg.className = 'swipe-delete-bg';
       deleteBg.setAttribute('aria-hidden', 'true');
-      deleteBg.innerHTML = '<i class="fa-solid fa-trash-can"></i><span>Löschen</span>';
+      const deleteIcon = document.createElement('i');
+      deleteIcon.className = 'fa-solid fa-trash-can';
+      const deleteLabel = document.createElement('span');
+      deleteLabel.textContent = t('swipe_delete_label');
+      deleteBg.appendChild(deleteIcon);
+      deleteBg.appendChild(deleteLabel);
 
       const row = document.createElement('div');
       row.className = 'day-modal-entry';
@@ -742,7 +809,7 @@ function showDayDetail(dateStr) {
         if (!entriesEl.querySelector('.day-modal-entry-wrapper')) {
           const empty = document.createElement('p');
           empty.className = 'day-modal-empty';
-          empty.textContent = 'Keine Einträge für diesen Tag';
+          empty.textContent = t('modal_no_entries');
           entriesEl.appendChild(empty);
         }
       });
@@ -751,7 +818,7 @@ function showDayDetail(dateStr) {
     const hint = document.createElement('p');
     hint.className = 'swipe-hint';
     hint.setAttribute('aria-hidden', 'true');
-    hint.textContent = '← Nach links wischen zum Löschen';
+    hint.textContent = t('swipe_hint');
     entriesEl.appendChild(hint);
   }
 
@@ -798,13 +865,13 @@ document.addEventListener('keydown', e => {
 });
 
 function clearStorage() {
-  if (confirm('Alle Daten löschen?')) {
+  if (confirm(t('confirm_delete_all'))) {
     try {
       localStorage.clear();
-      showToast('Daten gelöscht', 'success');
+      showToast(t('toast_deleted'), 'success');
       setTimeout(() => window.location.reload(), 1000);
     } catch (error) {
-      showToast('Fehler beim Löschen', 'error');
+      showToast(t('toast_delete_error'), 'error');
     }
   }
 }
@@ -825,13 +892,17 @@ function updateCustomBtn() {
     unitEl.textContent = 'ml';
     btn.classList.remove('water-btn--unset');
     if (editBtn) editBtn.hidden = false;
-    btn.setAttribute('aria-label', `${customMenge} Milliliter Wasser hinzufügen`);
+    btn.setAttribute('aria-label', t('custom_btn_aria_set', { amount: customMenge }));
   } else {
-    amountEl.innerHTML = '<i class="fa-solid fa-plus" aria-hidden="true"></i>';
-    unitEl.textContent = 'Eigene';
+    amountEl.textContent = '';
+    const icon = document.createElement('i');
+    icon.className = 'fa-solid fa-plus';
+    icon.setAttribute('aria-hidden', 'true');
+    amountEl.appendChild(icon);
+    unitEl.textContent = t('custom_btn_unit');
     btn.classList.add('water-btn--unset');
     if (editBtn) editBtn.hidden = true;
-    btn.setAttribute('aria-label', 'Eigene Wassermenge hinzufügen');
+    btn.setAttribute('aria-label', t('custom_btn_aria_unset'));
   }
 }
 
@@ -858,7 +929,7 @@ function closeCustomEdit() {
 function saveCustomMenge() {
   const menge = validateMenge(stepperValue);
   if (menge === null) {
-    showToast(`Ungültige Menge (${MIN_MENGE}–${MAX_MENGE} ml)`, 'error');
+    showToast(t('toast_invalid_amount', { min: MIN_MENGE, max: MAX_MENGE }), 'error');
     return;
   }
   customMenge = menge;
@@ -928,7 +999,7 @@ function updateBackupHint() {
   if (!hint) return;
   const ts = safeGetItem('lastBackup');
   if (ts) {
-    hint.textContent = `Zuletzt gesichert: ${ts}`;
+    hint.textContent = t('last_backup', { time: ts });
     hint.hidden = false;
   } else {
     hint.hidden = true;
@@ -937,8 +1008,9 @@ function updateBackupHint() {
 
 function saveBackupTimestamp() {
   const now = new Date();
-  const formatted = now.toLocaleDateString('de-DE') + ', ' +
-    now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + ' Uhr';
+  const locale = LOCALE_MAP[currentLang] ?? 'en-US';
+  const formatted = now.toLocaleDateString(locale) + ', ' +
+    now.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
   safeSetItem('lastBackup', formatted);
   updateBackupHint();
 }
@@ -958,17 +1030,17 @@ function exportData() {
   const file = new File([json], filename, { type: 'application/json' });
 
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
-    navigator.share({ files: [file], title: 'Wasserlogbuch Backup' })
+    navigator.share({ files: [file], title: t('backup_title') })
       .then(() => saveBackupTimestamp())
-      .catch(err => { if (err.name !== 'AbortError') showToast('Teilen fehlgeschlagen', 'error'); });
+      .catch(err => { if (err.name !== 'AbortError') showToast(t('toast_share_failed'), 'error'); });
   } else if (navigator.share) {
     navigator.share({ title: filename, text: json })
       .then(() => saveBackupTimestamp())
-      .catch(err => { if (err.name !== 'AbortError') showToast('Teilen fehlgeschlagen', 'error'); });
+      .catch(err => { if (err.name !== 'AbortError') showToast(t('toast_share_failed'), 'error'); });
   } else {
     navigator.clipboard.writeText(json)
-      .then(() => { saveBackupTimestamp(); showToast('Backup in Zwischenablage kopiert', 'success'); })
-      .catch(() => showToast('Teilen wird nicht unterstützt', 'error'));
+      .then(() => { saveBackupTimestamp(); showToast(t('toast_clipboard_copied'), 'success'); })
+      .catch(() => showToast(t('toast_share_unsupported'), 'error'));
   }
 }
 
@@ -978,23 +1050,21 @@ function importData(file) {
     try {
       const backup = JSON.parse(e.target.result);
       if (!backup.history || !Array.isArray(backup.history)) {
-        showToast('Ungültige Backup-Datei', 'error');
+        showToast(t('toast_invalid_backup'), 'error');
         return;
       }
-      if (!confirm(`${backup.history.length} Einträge wiederherstellen?\nBestehende Daten werden überschrieben.`)) return;
+      if (!confirm(t('confirm_restore', { count: backup.history.length }))) return;
       safeSetItem('history', JSON.stringify(backup.history));
       if (backup.DailyGoal) safeSetItem('DailyGoal', String(backup.DailyGoal));
       if (backup.customMenge) safeSetItem('customMenge', String(backup.customMenge));
-      showToast('Daten wiederhergestellt', 'success');
+      showToast(t('toast_restored'), 'success');
       setTimeout(() => window.location.reload(), 1000);
     } catch {
-      showToast('Backup-Datei konnte nicht gelesen werden', 'error');
+      showToast(t('toast_backup_read_error'), 'error');
     }
   };
   reader.readAsText(file);
 }
-
-updateBackupHint();
 
 document.getElementById('exportBtn')?.addEventListener('click', exportData);
 
